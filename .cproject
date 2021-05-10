@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?>
+
+<cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="toolchain.config.hcs08.release.785514413">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="toolchain.config.hcs08.release.785514413" moduleId="org.eclipse.cdt.core.settings" name="FLASH">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.managedbuilder.core.ManagedBuildManager" point="org.eclipse.cdt.core.ScannerInfoProvider"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.LltErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.AsmErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.IcodeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.CobjErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.S08ErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.LnkErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.freescale.core.ide.cdt.errorParsers.MwfeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactExtension="abs" artifactName="7x_tail_module" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" buildReferences="true" buildReferencingConfigurations="false" cleanCommand="&quot;${system:ECLIPSE_HOME}/../gnu/bin/rm&quot; -f" description="" errorParsers="org.eclipse.cdt.core.GmakeErrorParser;com.freescale.core.ide.cdt.errorParsers.GCCErrorParser;com.freescale.core.ide.cdt.errorParsers.MwfeErrorParser;com.freescale.core.ide.cdt.errorParsers.LnkErrorParser;com.freescale.core.ide.cdt.errorParsers.AsmErrorParser;com.freescale.core.ide.cdt.errorParsers.CobjErrorParser;com.freescale.core.ide.cdt.errorParsers.IcodeErrorParser;com.freescale.core.ide.cdt.errorParsers.LltErrorParser;com.freescale.core.ide.cdt.errorParsers.S08ErrorParser;" id="toolchain.config.hcs08.release.785514413" isPrebuildInvalidatingBuild="false" isVersionInfoProjSpecific="false" name="FLASH" parent="toolchain.config.hcs08.release" produceBuildErrorsWithMissingReferences="true">
+					<folderInfo id="toolchain.config.hcs08.release.785514413." name="/" resourcePath="">
+						<toolChain errorParsers="" id="hcs08.project.toolchain.673404571" name="HCS08 Toolchain" superClass="hcs08.project.toolchain">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="hc08.toolchain.platform.1895013879" name="HC08 Targetplatform" superClass="hc08.toolchain.platform"/>
+							<builder buildPath="${ProjDirPath}/FLASH" errorParsers="com.freescale.core.ide.cdt.errorParsers.GCCErrorParser;org.eclipse.cdt.core.GmakeErrorParser;com.freescale.core.ide.cdt.errorParsers.LltErrorParser;com.freescale.core.ide.cdt.errorParsers.AsmErrorParser;com.freescale.core.ide.cdt.errorParsers.IcodeErrorParser;com.freescale.core.ide.cdt.errorParsers.CobjErrorParser;com.freescale.core.ide.cdt.errorParsers.S08ErrorParser;com.freescale.core.ide.cdt.errorParsers.LnkErrorParser;com.freescale.core.ide.cdt.errorParsers.MwfeErrorParser" id="hc08.toolchain.builder.1889133090" keepEnvironmentInBuildfile="false" name="GNU Make Builder" parallelBuildOn="true" parallelBuildWorkspaceOn="true" parallelizationNumber="optimal" superClass="hc08.toolchain.builder"/>
+							<tool errorParsers="" id="s08.toolchain.decoder.716943487" name="S08 Disassembler" superClass="s08.toolchain.decoder"/>
+							<tool errorParsers="" id="hc08.toolchain.linker.574307886" name="S08 Linker" superClass="hc08.toolchain.linker">
+								<option id="hc08.toolchain.linker.base.general.paramFile.169675984" name="Parameter File" superClass="hc08.toolchain.linker.base.general.paramFile" value="${ProjDirPath}/Project_Settings/Linker_Files/ProcessorExpert.prm" valueType="string"/>
+								<option id="hc08.toolchain.linker.base.libraries.libs.1012362821" name="Libraries" superClass="hc08.toolchain.linker.base.libraries.libs" valueType="libs">
+									<listOptionValue builtIn="false" value="&quot;${MCUToolsBaseDir}/lib/hc08c/lib/ansiis.lib&quot;"/>
+								</option>
+								<option id="hc08.toolchain.linker.base.messages.WmsgSd.759156093" name="Set messages to Disable" superClass="hc08.toolchain.linker.base.messages.WmsgSd" value="-WmsgSd1100 -WmsgSd1912" valueType="string"/>
+								<option id="hc08.toolchain.linker.base.linkOrder.1347095885" name="Link Order" superClass="hc08.toolchain.linker.base.linkOrder" valueType="stringList">
+									<listOptionValue builtIn="false" value="Generated_Code/AD1.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/AI_3_PU.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/CAN1.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/CAN_EN.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/CAN_STB_N.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/CAN_WAKE.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/Cpu.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DI_CAN_ERR.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_20MA_1.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_20MA_2.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_30V_10V_1.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_30V_10V_2.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_30V_10V_3.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_HSD_1.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_HSD_2.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_HSD_3.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_HSD_4.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_HSD_SEN.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/DO_POWER.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/IO_Map.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/TickTimer.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/Vectors.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/WDog1.c"/>
+									<listOptionValue builtIn="false" value="Project_Settings/Startup_Code/start08.c"/>
+									<listOptionValue builtIn="false" value="Sources/Events.c"/>
+									<listOptionValue builtIn="false" value="Sources/can.c"/>
+									<listOptionValue builtIn="false" value="Sources/cas_jbe_emulator.c"/>
+									<listOptionValue builtIn="false" value="Sources/fault.c"/>
+									<listOptionValue builtIn="false" value="Sources/lights.c"/>
+									<listOptionValue builtIn="false" value="Sources/main.c"/>
+									<listOptionValue builtIn="false" value="Sources/monitors.c"/>
+									<listOptionValue builtIn="false" value="Sources/output.c"/>
+									<listOptionValue builtIn="false" value="Sources/tail-module.c"/>
+									<listOptionValue builtIn="false" value="Sources/timer.c"/>
+								</option>
+								<inputType id="hc08.toolchain.linker.base.input.1138786096" name="Linker Input" superClass="hc08.toolchain.linker.base.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool errorParsers="" id="hc08.toolchain.burner.1451543592" name="S08 Burner" superClass="hc08.toolchain.burner"/>
+							<tool errorParsers="" id="hcs08.toolchain.compiler.1494836286" name="HCS08 Compiler" superClass="hcs08.toolchain.compiler">
+								<option id="hc08.toolchain.compiler.base.preprocessor.defines.667143240" name="Define preprocessor macros (-D)" superClass="hc08.toolchain.compiler.base.preprocessor.defines" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="__NO_FLOAT__"/>
+								</option>
+								<option id="hsc08.toolchain.compiler.base.input.i.425542096" name="Include File Path (-I)" superClass="hsc08.toolchain.compiler.base.input.i" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/Project_Headers&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${MCUToolsBaseDir}/lib/hc08c/device/src&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${MCUToolsBaseDir}/lib/hc08c/lib&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${MCUToolsBaseDir}/lib/hc08c/src&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${MCUToolsBaseDir}/lib/hc08c/device/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${MCUToolsBaseDir}/lib/hc08c/include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${MCUToolsBaseDir}/lib/hc08c/device/asm_include&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/Generated_Code&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/Sources&quot;"/>
+								</option>
+								<option id="hc08.toolchain.compiler.base.output.alloc.const.obs.in.rom.1671496570" name="Allocate CONST objects in ROM (-Cc)" superClass="hc08.toolchain.compiler.base.output.alloc.const.obs.in.rom" value="true" valueType="boolean"/>
+								<inputType id="hcs08.toolchain.compiler.base.input.c.1353918659" name="HCS08 Compiler C Input" superClass="hcs08.toolchain.compiler.base.input.c"/>
+								<inputType id="hcs08.toolchain.compiler.base.input.cpp.1268294037" name="HCS08 Compiler CPP Input" superClass="hcs08.toolchain.compiler.base.input.cpp"/>
+							</tool>
+							<tool errorParsers="" id="hc08.toolchain.assembler.1797658008" name="HCS08 Assembler" superClass="hc08.toolchain.assembler">
+								<inputType id="hc08.toolchain.assembler.base.input.1731072011" name="HC08 Assembler Input" superClass="hc08.toolchain.assembler.base.input"/>
+							</tool>
+							<tool errorParsers="" id="hc08.toolchain.preprocessor.239513851" name="HCS08 Preprocessor" superClass="hc08.toolchain.preprocessor"/>
+						</toolChain>
+					</folderInfo>
+					<fileInfo id="toolchain.config.hcs08.release.785514413..settings/com.freescale.processorexpert.core.prefs" name="com.freescale.processorexpert.core.prefs" rcbsApplicability="disable" resourcePath=".settings/com.freescale.processorexpert.core.prefs" toolsToInvoke=""/>
+					<sourceEntries>
+						<entry excluding=".settings/com.freescale.processorexpert.core.prefs" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="7x_experiment.toolchain.hcs08.executable.1972167120" name="Freescale HCS08 Project" projectType="toolchain.hcs08.executable"/>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="toolchain.config.hcs08.release.785514413;toolchain.config.hcs08.release.785514413.;hcs08.toolchain.compiler.1494836286;hcs08.toolchain.compiler.base.input.c.1353918659">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.freescale.hc08.cdt.toolchain.hcs08.discoveryProfile"/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="toolchain.config.hcs08.release.785514413;toolchain.config.hcs08.release.785514413.;hcs08.toolchain.compiler.1494836286;hcs08.toolchain.compiler.base.input.cpp.1268294037">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.freescale.hc08.cdt.toolchain.hcs08.discoveryProfile"/>
+		</scannerConfigBuildInfo>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.pathentry"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="FLASH">
+			<resource resourceType="PROJECT" workspacePath="/7x_e36_tail_module"/>
+		</configuration>
+	</storageModule>
+</cproject>
