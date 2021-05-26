@@ -37,7 +37,7 @@ tail_module(void)
     // stay awake even if KL15 is not present
     DO_POWER_SetVal();
 
-    // hook up printf
+    // fix CAN config and hook up printf
     can_reinit();
     print("E36 tail module");
 

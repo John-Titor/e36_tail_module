@@ -53,6 +53,24 @@ void TickTimer_OnInterrupt(void)
     timer_tick();
 }
 
+/*
+** ===================================================================
+**     Event       :  CAN1_OnFullRxBuffer (module Events)
+**
+**     Component   :  CAN1 [FreescaleCAN]
+**     Description :
+**         This event is called when the receive buffer is full after a
+**         successful reception of a message. The event is available
+**         only if Interrupt service/event is enabled.
+**     Parameters  : None
+**     Returns     : Nothing
+** ===================================================================
+*/
+void CAN1_OnFullRxBuffer(void)
+{
+  can_rx_message();
+}
+
 /* END Events */
 
 /*!

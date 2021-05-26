@@ -10,7 +10,22 @@
 #include "pt.h"
 #include "timer.h"
 
-unsigned can_rx_count;
+static volatile unsigned can_rx_count;
+
+typedef struct {
+    uint32_t    id;
+    uint8_t     dlc;
+    uint8_t     data[8];
+}                           can_buf_t;
+
+#define CAN_BUF_COUNT       8
+static can_buf_t            _can_buf[CAN_BUF_COUNT];
+static volatile uint8_t     can_buf_head;
+static uint8_t              can_buf_tail;
+#define _CAN_BUF_INDEX(_x)  ((_x) & (uint8_t)(CAN_BUF_COUNT - 1))
+#define CAN_BUF_PTR(_x)     &_can_buf[_CAN_BUF_INDEX(_x)]
+#define CAN_BUF_EMPTY       (can_buf_head == can_buf_tail)
+#define CAN_BUF_FULL        ((can_buf_head - can_buf_tail) >= CAN_BUF_COUNT)
 
 void
 can_trace(uint8_t code)
@@ -50,7 +65,9 @@ can_putchar(char ch)
 void
 can_reinit(void)
 {
-    CANCTL0 = CANCTL0_INITRQ_MASK;
+    REQUIRE(CAN_BUF_EMPTY);
+
+    CANCTL0 |= CANCTL0_INITRQ_MASK;
     while (!(CANCTL1 & CANCTL1_INITAK_MASK)) {
     }
 
@@ -77,10 +94,10 @@ can_reinit(void)
     CANIDMR2 = 0xff;
     CANIDMR3 = 0xe0;
 
-    CANIDAR4 = 0xde;            // 0x6f1
+    CANIDAR4 = 0xde;            // 0x6xx
     CANIDAR5 = 0x20;
-    CANIDMR4 = 0xff;
-    CANIDMR5 = 0xe0;
+    CANIDMR4 = 0xe0;
+    CANIDMR5 = 0x00;
 
     CANIDAR6 = 0x00;            // 0x000
     CANIDAR7 = 0x00;
@@ -91,6 +108,45 @@ can_reinit(void)
     CANCTL0 &= ~CANCTL0_INITRQ_MASK;
     while (CANCTL1 & CANCTL1_INITAK_MASK) {
     }
+    CANRFLG |= 0xFE;                     /* Reset error flags */
+    CANRIER = 0x01;                      /* Enable interrupts */
+
+    // now we can enable RX events
+    CAN1_EnableEvent();
+}
+
+/*
+ * Interrupt callback for CAN receive.
+ */
+void
+can_rx_message(void)
+{
+    // check for a CAN message
+    can_buf_t *buf;
+    uint8_t type;
+    uint8_t ret;
+    uint8_t format;
+
+    // If there's nowhere to put a message, just drop it.
+    if (CAN_BUF_FULL) {
+        return;
+    }
+    buf = CAN_BUF_PTR(can_buf_head);
+
+    // read the frame
+    ret = CAN1_ReadFrame(&buf->id,
+                         &type,
+                         &format,
+                         &buf->dlc,
+                         &buf->data[0]);
+
+    if ((ret == ERR_OK) &&
+        (type == DATA_FRAME) &&
+        (format == STANDARD_FORMAT)) {
+
+        // accept this message
+        can_buf_head++;
+    }
 }
 
 void
@@ -100,57 +156,43 @@ can_listen(struct pt *pt)
 
     pt_begin(pt);
 
+    // set up the CAN idle timer
     timer_register(&can_idle_timer);
     timer_reset(can_idle_timer, CAN_IDLE_TIMEOUT);
 
     for (;;) {
 
-        // check for a CAN message
-        uint8_t type;
-        uint8_t ret;
-        uint32_t id;
-        uint8_t dlc;
-        uint8_t format;
-        uint8_t data[8];
-
-        ret = CAN1_ReadFrame(&id,
-                             &type,
-                             &format,
-                             &dlc,
-                             &data[0]);
-        if ((ret == ERR_OK) && (type == DATA_FRAME)) {
+        // handle CAN messages
+        while (!CAN_BUF_EMPTY) {
+            can_buf_t *buf = CAN_BUF_PTR(can_buf_tail);
+            can_buf_tail++;
 
             // we're hearing CAN, so reset the idle timer / fault
             timer_reset(can_idle_timer, CAN_IDLE_TIMEOUT);
             fault_clear_system(SYS_FAULT_CAN_TIMEOUT);
-            can_rx_count++;
-
 
             // BMW brake pedal message
             //
-            if ((format == STANDARD_FORMAT) &&
-                (id == 0xa8) &&
-                (dlc == 8)) {
+            if ((buf->id == 0xa8) &&
+                (buf->dlc == 8)) {
 
-                brake_light_request((data[7] & 0x20) ? LIGHT_ON : LIGHT_OFF);
+                brake_light_request((buf->data[7] & 0x20) ? LIGHT_ON : LIGHT_OFF);
             }
 
             // BMW lighting message
             //
-            else if ((format == STANDARD_FORMAT) &&
-                     (id == 0x21a) &&
-                     (dlc == 3)) {
+            else if ((buf->id == 0x21a) &&
+                     (buf->dlc == 3)) {
 
-                tail_light_request((data[0] & 0x04) ? LIGHT_ON : LIGHT_OFF);
-                rain_light_request((data[0] & 0x40) ? LIGHT_ON : LIGHT_OFF);
+                tail_light_request((buf->data[0] & 0x04) ? LIGHT_ON : LIGHT_OFF);
+                rain_light_request((buf->data[0] & 0x40) ? LIGHT_ON : LIGHT_OFF);
             }
 
             // EDIABAS-style request
-            else if ((format == STANDARD_FORMAT) &&
-                     (id == 0x6f1) &&
-                     (dlc == 8)) {
+            else if ((buf->id == 0x6f1) &&
+                     (buf->dlc == 8)) {
 
-                cas_jbe_recv(&data[0]);
+                cas_jbe_recv(&buf->data[0]);
             }
         }
 

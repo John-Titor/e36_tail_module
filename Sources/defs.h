@@ -30,6 +30,8 @@ typedef unsigned long   uint32_t;
         if (!(_cond))  __require_abort(__FILE__, __LINE__); \
     } while(0)
 
+#define ABORT()     REQUIRE(0)
+
 extern void __require_abort(const char *file, int line);
 extern void print(const char *format, ...);
 
@@ -41,12 +43,11 @@ extern struct pt pt_can_listener;
 extern struct pt pt_can_report_fuel;
 extern struct pt pt_can_report_diags;
 
-extern unsigned can_rx_count;
-
 extern void can_trace(uint8_t code);
 extern void can_putchar(char ch);
 
 extern void can_reinit(void);
+extern void can_rx_message(void);
 extern void can_listen(struct pt *pt);
 extern void can_report_fuel(struct pt *pt);
 extern void can_report_diags(struct pt *pt);
