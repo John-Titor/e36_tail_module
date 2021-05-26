@@ -29,8 +29,6 @@ struct pt pt_output_1;
 struct pt pt_output_2;
 struct pt pt_output_3;
 
-static void kl15_check(void);
-
 void
 tail_module(void)
 {
@@ -49,7 +47,6 @@ tail_module(void)
     // main loop
     for (;;) {
         (void)WDog1_Clear();                            // must be reset every 1s or better
-        //kl15_check();                                 // XXX fix monitors
 
         // run threads
         can_listen(&pt_can_listener);
@@ -66,22 +63,3 @@ tail_module(void)
     }
 }
 
-void
-kl15_check(void)
-{
-    if (monitor_get(MON_T15_VOLTAGE) >= T15_MIN_VOLTAGE) {
-        return;
-    }
-    print("LVD");
-
-    // low-voltage trap
-    while (monitor_get(MON_T15_VOLTAGE) < T15_MIN_VOLTAGE) {
-        // allow power-off if T15 falls low enough
-        DO_POWER_ClrVal();
-        CAN_STB_N_ClrVal();
-        (void)WDog1_Clear();
-    }
-
-    // voltage has recovered, let the watchdog reset us
-    for (;;);
-}
