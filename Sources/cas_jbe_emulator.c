@@ -35,16 +35,14 @@
 #define ID_CAS 0x40
 #define ID_ALL 0xef
 
-static uint8_t req_buf[8];
-
-static struct {
+typedef struct {
     const uint8_t   *bytes;
     uint8_t         residual;
     uint8_t         sequence;
-} response_state;
+} cas_jbe_state_t;
 
-static bool response_continue;
-
+static cas_jbe_state_t cas_state;
+static cas_jbe_state_t jbe_state;
 
 ////////////////////////////////////////////////////////////////////////////////
 // CAS_responses
@@ -152,7 +150,7 @@ static const uint8_t jbe_rsp_0x1a_0x80[] = {
 };
 
 
-static const uint8_t *const CAS_responses[] = {
+static const uint8_t *const cas_responses[] = {
     &cas_rsp_0x1a_0x80[0],
     &cas_rsp_0x22_0x10_0x10[0],
     &cas_rsp_0x22_0x3f_0x00[0],
@@ -164,76 +162,120 @@ static const uint8_t *const CAS_responses[] = {
     NULL
 };
 
-static const uint8_t *const JBE_responses[] = {
+static const uint8_t *const jbe_responses[] = {
     &jbe_rsp_0x1a_0x80[0],
     NULL
 };
 
-// Select a response from the indicated catalog
-static bool
-cas_jbe_select_response(const uint8_t * const *catalog)
-{
-    // First bytes of response echo the request, so just look for a matching
-    // prefix given the request length
-    while (*catalog != NULL) {
-        if (!memcmp(*catalog, &req_buf[2], req_buf[1])) {
-            // set response bytes
-            response_state.bytes = *catalog;
-            // response length is the byte after the request echo in the response
-            response_state.residual = req_buf[1] + 1 + response_state.bytes[req_buf[1]];
-            response_continue = FALSE;
-            return TRUE;
-        }
-    }
-    response_state.residual = 0;
-    return FALSE;
-}
-
 // Send one message continuing the selected response
 static void
-cas_jbe_send_response(uint8_t respondent)
+cas_jbe_send_response(uint8_t respondent, cas_jbe_state_t *state)
 {
     uint8_t data[8];
     uint8_t ret;
     uint8_t index;
 
-    REQUIRE(response_state.residual > 0);
+    REQUIRE(state->residual > 0);
 
     // response header
-    data[0] = 0x1a;     // expected requester ID
-    data[1] = response_state.sequence++;
-    if (response_state.sequence == 0x11) {
-        response_state.sequence = 0x21;
+    data[0] = 0xf1;     // expected requester ID
+    data[1] = state->sequence++;
+    if (state->sequence == 0x11) {
+        state->sequence = 0x21;
     }
 
     // response data bytes, plus padding
     index = 2;
-    while ((index < 8) && (response_state.residual--)) {
-        data[index++] = *response_state.bytes++;
+    while ((index < 8) && (state->residual--)) {
+        data[index++] = *(state->bytes++);
     }
     while (index < 8) {
         data[index++] = 0xff;
     }
     do {
-        ret = CAN1_SendFrameExt(0x600 | respondent, DATA_FRAME, 0x8, &data[0]);
+        // send explicitly using buffer 1 to ensure messages are sent in order
+        ret = CAN1_SendFrame(1, 0x600 | respondent, DATA_FRAME, 0x8, &data[0]);
     } while (ret == ERR_TXFULL);
 }
 
-// Handle sending periodic Terminal Status messages
+// Send a response from the catalog, or continue an earlier response
 static void
-cas_jbe_send_terminal_status(void)
+cas_jbe_handle_request(uint8_t *data,
+                       cas_jbe_state_t *state,
+                       const uint8_t * const *catalog)
+{
+    // Check for a continuation request; send remainder of message if so.
+    //
+    if ((data[1] == 0x30) &&
+        (data[2] == 0x00) &&
+        (data[3] == 0x01) &&
+        (data[4] == 0x00) &&
+        (data[5] == 0x00) &&
+        (data[6] == 0x00) &&
+        (data[7] == 0x00)) {
+
+        while (state->residual > 0) {
+            cas_jbe_send_response(data[0], state);
+        }
+        return;
+    }
+
+    // First bytes of response echo the request, so just look for a matching
+    // prefix given the request length
+    while (*catalog != NULL) {
+        if (!memcmp(*catalog, &data[2], data[1])) {
+            // set response bytes
+            state->bytes = *catalog;
+            // response length is the byte after the request echo in the response
+            state->residual = data[1] + 1 + state->bytes[data[1]];
+            // intial sequence number
+            state->sequence = 0x10;
+
+            // and send the initial response
+            cas_jbe_send_response(data[0], state);
+            return;
+        }
+        catalog++;
+    }
+
+    // clear any partially-sent response as it's invalid at this point
+    state->residual = 0;
+}
+
+// Handle receiving a new request
+void
+cas_jbe_recv(uint8_t *data)
+{
+
+    // ignore messages not addressed to at least one of CAS or JBE
+    switch (data[0]) {
+    case ID_CAS:
+        cas_jbe_handle_request(data, &cas_state, &cas_responses[0]);
+        break;
+    case ID_JBE:
+        cas_jbe_handle_request(data, &jbe_state, &jbe_responses[0]);
+        break;
+    case ID_ALL:
+        cas_jbe_handle_request(data, &cas_state, &cas_responses[0]);
+        cas_jbe_handle_request(data, &jbe_state, &jbe_responses[0]);
+        break;
+    }
+}
+
+// Send periodic Terminal Status messages
+void
+cas_jbe_emulator(struct pt *pt)
 {
     static timer_t terminal_status_timer;
 
-    if (!timer_registered(terminal_status_timer)) {
-        timer_register(&terminal_status_timer);
-        timer_reset(terminal_status_timer, 500);
-    } 
-    if (timer_expired(terminal_status_timer)) {
+    pt_begin(pt);
+    timer_register(&terminal_status_timer);
+
+    for (;;) {
         uint8_t data[8];
         uint8_t ret;
 
-        timer_reset(terminal_status_timer, 500);
+        pt_delay(pt, terminal_status_timer, 500);
 
         data[0] = 0xc5;
         data[1] = 0x40;
@@ -244,98 +286,6 @@ cas_jbe_send_terminal_status(void)
         do {
             ret = CAN1_SendFrameExt(0x130, DATA_FRAME, 5, &data[0]);
         } while (ret == ERR_TXFULL);
-    }
-}
-
-// Handle receiving a new request
-void
-cas_jbe_recv(uint8_t *data)
-{
-    // ignore messages not addressed to at least one of CAS or JBE
-    switch (data[0]) {
-    case ID_JBE:
-    case ID_CAS:
-    case ID_ALL:
-        break;
-    default:
-        return;
-    }
-
-    // Check for a flow-resume message.
-    //
-    // Note that we don't check who it's addressed to, since things
-    // seem to assume that in the broadcast case only one module
-    // is talking at all at a time, so we never offer data from
-    // more than one respondent at once.
-    //
-    if ((data[1] == 0x30) &&
-        (data[2] == 0x00) &&
-        (data[3] == 0x01) &&
-        (data[4] == 0x00) &&
-        (data[5] == 0x00) &&
-        (data[6] == 0x00) &&
-        (data[7] == 0x00)) {
-
-        // send the remainder of the message
-        response_continue = TRUE;
-
-        // sanity-check request length
-    } else if (data[1] <= 6) {
-        (void)memcpy(&req_buf, data, sizeof(req_buf));
-        pt_reset(&pt_cas_jbe_emulator);
-        response_state.residual = 0;
-    }
-}
-
-void
-cas_jbe_emulator(struct pt *pt)
-{
-    // Note that this code runs every time the PT is 
-    // scheduled.
-    cas_jbe_send_terminal_status();
-
-    pt_begin(pt);
-
-    // request targeted at CAS, or broadcast?
-    if ((req_buf[0] == ID_CAS) ||
-        (req_buf[0] == ID_ALL)) {
-
-        // see if CAS handles this message
-        if (cas_jbe_select_response(&CAS_responses[0])) {
-
-            // it does, send reply
-            cas_jbe_send_response(ID_CAS);
-
-            // more reply bytes?
-            if (response_state.residual) {
-                pt_wait(pt, response_continue);
-                while (response_state.residual) {
-                    cas_jbe_send_response(ID_CAS);
-                    pt_yield(pt);
-                }
-            }
-        }
-    }
-
-    // request targeted at JBE, or broadcast?
-    if ((req_buf[0] == ID_JBE) ||
-        (req_buf[0] == ID_ALL)) {
-
-        // see if JBE handles this message
-        if (cas_jbe_select_response(&JBE_responses[0])) {
-
-            // it does, send reply
-            cas_jbe_send_response(ID_JBE);
-
-            // more reply bytes?
-            if (response_state.residual) {
-                pt_wait(pt, response_continue);
-                while (response_state.residual) {
-                    cas_jbe_send_response(ID_JBE);
-                    pt_yield(pt);
-                }
-            }
-        }
     }
 
     pt_end(pt);
