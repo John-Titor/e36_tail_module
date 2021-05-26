@@ -132,7 +132,7 @@ can_listen(struct pt *pt)
                 (id == 0xa8) &&
                 (dlc == 8)) {
 
-                brake_light_request((data[7] > 20) ? LIGHT_ON : LIGHT_OFF);
+                brake_light_request((data[7] & 0x20) ? LIGHT_ON : LIGHT_OFF);
             }
 
             // BMW lighting message
