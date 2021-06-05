@@ -117,12 +117,13 @@ class MSG_scantool(TXMessageStd):
     _format = '>BBBBBBBB'
 
     def __init__(self, recipient, length, cmd):
-        while len(cmd) < 6:
-            cmd.append(0)
+        cmd_bytes = cmd
+        while len(cmd_bytes) < 6:
+            cmd_bytes = cmd_bytes + [0]
         super().__init__(0x6f1,
                          recipient,
                          length,
-                         *cmd)
+                         *cmd_bytes)
 
 
 class RXMessage(object):
@@ -142,6 +143,7 @@ class RXMessage(object):
             raise MessageError(f'expected reply with length {expected_dlc} '
                                f'but got {raw}')
 
+        self._raw = raw
         self._data = raw.data
         self._values = struct.unpack(self._format, self._data)
         for (index, (check, value)) in enumerate(self._filter):
@@ -153,6 +155,9 @@ class RXMessage(object):
     @classmethod
     def len(self):
         return struct.calcsize(self._format)
+
+    def _str(self):
+        return f'{self._raw}'
 
 
 class MSG_ack(RXMessage):
@@ -190,12 +195,12 @@ class MSG_ack(RXMessage):
         try:
             self.status = self.STATUS_MAP[self.status_code]
         except KeyError:
-            self.status = "unknown"
+            self.status = 'unknown'
 
 
 class MSG_status_system(RXMessage):
     """firmware system status message"""
-    _format = ">HHBBBB"
+    _format = '>HHBBBB'
     _filter = [(True, 0),
                (False, 0),
                (False, 0),
@@ -216,7 +221,7 @@ class MSG_status_system(RXMessage):
 
 class MSG_status_voltage_current(RXMessage):
     """firmware voltage/current report"""
-    _format = ">BBBBBBBB"
+    _format = '>BBBBBBBB'
     _filter = [(False, 0),
                (False, 0),
                (False, 0),
@@ -235,7 +240,7 @@ class MSG_status_voltage_current(RXMessage):
 
 class MSG_status_faults(RXMessage):
     """firmware fault status report"""
-    _format = ">BBBBBBBB"
+    _format = '>BBBBBBBB'
     _filter = [(False, 0),
                (False, 0),
                (False, 0),
@@ -254,7 +259,7 @@ class MSG_status_faults(RXMessage):
 
 class MSG_ecu_reply(RXMessage):
     """reply from CAS or JBE"""
-    _format = ">BBBBBBBB"
+    _format = '>BBBBBBBB'
     _filter = [(False, 0),
                (False, 0),
                (False, 0),
@@ -397,7 +402,7 @@ class ModuleState(object):
         except MessageError:
             pass
         self.message_errors += 1
-        self._logger.log(f"CAN? {msg}")
+        self._logger.log(f'CAN? {msg}')
 
     def timeout(self):
         self._can_in_timeout = True
@@ -452,9 +457,9 @@ class MilliUnit(DispObj):
     @property
     def value(self):
         try:
-            return f"{self.property / 1000:>6.3f}{self._suffix}"
+            return f'{self.property / 1000:>6.3f}{self._suffix}'
         except Exception:
-            return f"--.---{self._suffix}"
+            return f'--.---{self._suffix}'
 
 
 class CentiUnit(DispObj):
@@ -465,9 +470,9 @@ class CentiUnit(DispObj):
     @property
     def value(self):
         try:
-            return f"{self.property / 100:>5.2f}{self._suffix}"
+            return f'{self.property / 100:>5.2f}{self._suffix}'
         except Exception:
-            return f"--.--{self._suffix}"
+            return f'--.--{self._suffix}'
 
 
 class DeciUnit(DispObj):
@@ -478,24 +483,24 @@ class DeciUnit(DispObj):
     @property
     def value(self):
         try:
-            return f"{self.property / 10:>4.1f}{self._suffix}"
+            return f'{self.property / 10:>4.1f}{self._suffix}'
         except Exception:
-            return f"--.-{self._suffix}"
+            return f'--.-{self._suffix}'
 
 
 class Millivolts(MilliUnit):
     def __init__(self, win, y, x, source, propname, index=None):
-        super().__init__(win, y, x, source, propname, index, "V")
+        super().__init__(win, y, x, source, propname, index, 'V')
 
 
 class DeciVolts(DeciUnit):
     def __init__(self, win, y, x, source, propname, index=None):
-        super().__init__(win, y, x, source, propname, index, "V")
+        super().__init__(win, y, x, source, propname, index, 'V')
 
 
 class CentiAmps(CentiUnit):
     def __init__(self, win, y, x, source, propname, index=None):
-        super().__init__(win, y, x, source, propname, index, "A")
+        super().__init__(win, y, x, source, propname, index, 'A')
 
 
 class ByteUnit(DispObj):
@@ -506,9 +511,9 @@ class ByteUnit(DispObj):
     @property
     def value(self):
         try:
-            return f"{self.property:3}{self._suffix}"
+            return f'{self.property:3}{self._suffix}'
         except Exception:
-            return f"---{self._suffix}"
+            return f'---{self._suffix}'
 
 
 class Temperature(ByteUnit):
@@ -527,7 +532,7 @@ class Count(DispObj):
 
     @property
     def value(self):
-        return f"{self.property:5}"
+        return f'{self.property:5}'
 
 
 class OnOff(DispObj):
@@ -546,9 +551,9 @@ class OnOff(DispObj):
     @property
     def value(self):
         try:
-            return "ON " if self.property else "OFF"
+            return 'ON ' if self.property else 'OFF'
         except Exception:
-            return "---"
+            return '---'
 
 
 class Fault(DispObj):
@@ -580,7 +585,7 @@ class Fault(DispObj):
 
     @property
     def value(self):
-        return "-" * len(self._label) if self._state == 'none' else self._label
+        return '-' * len(self._label) if self._state == 'none' else self._label
 
 
 class Flag(DispObj):
@@ -605,7 +610,7 @@ class Flag(DispObj):
                 return self._label
         except Exception:
             pass
-        return "-" * len(self._label)
+        return '-' * len(self._label)
 
 
 class Logger(object):
@@ -613,29 +618,29 @@ class Logger(object):
         self._verbose = args.verbose
         self._win = win
         if self._win is not None:
-            self._win.addstr(0, 0, "initializing...\n")
+            self._win.addstr(0, 0, 'initializing...\n')
             self._win.idlok(True)
             self._win.scrollok(True)
             self._win.refresh()
-        self._cons_buf = ""
+        self._cons_buf = ''
 
     def log_can(self, msg):
         if self._verbose:
-            self.log(f"CAN: {msg}")
+            self.log(f'CAN: {msg}')
 
     def log_console(self, msg):
         if msg.arbitration_id != CONSOLE_ID:
             raise KeyError
         for idx in range(0, msg.dlc):
             if msg.data[idx] == 0:
-                self.log(f"CONS: {self._cons_buf}", curses.A_BOLD)
-                self._cons_buf = ""
+                self.log(f'CONS: {self._cons_buf}', curses.A_BOLD)
+                self._cons_buf = ''
             else:
                 self._cons_buf += chr(msg.data[idx])
 
     def log(self, msg, attr=curses.A_DIM):
         if self._win is not None:
-            self._win.addstr(f"{msg}\n", attr)
+            self._win.addstr(f'{msg}\n', attr)
             self._win.refresh()
         else:
             print(f'{msg}')
@@ -734,12 +739,12 @@ def do_monitor(stdscr, interface, args):
         Millivolts(statwin, 6, 5, module_state, 't15_voltage'),
         Temperature(statwin, 6, 19, module_state, 'temperature'),
         Percentage(statwin, 6, 32, module_state, 'fuel_level'),
-        Flag(statwin, 7, 9, module_state, 'function_request', 0, "Brake"),
-        Flag(statwin, 7, 15, module_state, 'function_request', 1, "Light"),
-        Flag(statwin, 7, 21, module_state, 'function_request', 2, "Rain"),
-        Fault(statwin, 8, 9, module_state, 'system_faults', 0, "T15"),
-        Fault(statwin, 8, 13, module_state, 'system_faults', 1, "CAN"),
-        Fault(statwin, 8, 17, module_state, 'system_faults', 2, "TEMP"),
+        Flag(statwin, 7, 9, module_state, 'function_request', 0, 'Brake'),
+        Flag(statwin, 7, 15, module_state, 'function_request', 1, 'Light'),
+        Flag(statwin, 7, 21, module_state, 'function_request', 2, 'Rain'),
+        Fault(statwin, 8, 9, module_state, 'system_faults', 0, 'T15'),
+        Fault(statwin, 8, 13, module_state, 'system_faults', 1, 'CAN'),
+        Fault(statwin, 8, 17, module_state, 'system_faults', 2, 'TEMP'),
 
         OnOff(statwin, 16, 7, monitor_state, 'sw_t15'),
         OnOff(statwin, 16, 20, monitor_state, 'sw_brake'),
@@ -749,12 +754,12 @@ def do_monitor(stdscr, interface, args):
     ]
     for channel in range(0, 4):
         widgets += [
-            Flag(statwin, 11 + channel, 12, module_state, 'output_request', channel, "ON"),
+            Flag(statwin, 11 + channel, 12, module_state, 'output_request', channel, 'ON'),
             DeciVolts(statwin, 11 + channel, 19, module_state, 'output_voltage', channel),
             CentiAmps(statwin, 11 + channel, 31, module_state, 'output_current', channel),
-            Fault(statwin, 11 + channel, 43, module_state, 'output_faults', 0, "OPEN", channel),
-            Fault(statwin, 11 + channel, 48, module_state, 'output_faults', 1, "STUCK", channel),
-            Fault(statwin, 11 + channel, 54, module_state, 'output_faults', 2, "OVERLOAD", channel),
+            Fault(statwin, 11 + channel, 43, module_state, 'output_faults', 0, 'OPEN', channel),
+            Fault(statwin, 11 + channel, 48, module_state, 'output_faults', 1, 'STUCK', channel),
+            Fault(statwin, 11 + channel, 54, module_state, 'output_faults', 2, 'OVERLOAD', channel),
         ]
 
     # run the monitor loop
@@ -836,9 +841,10 @@ def do_cas_jbe_test(interface, args):
         if reply.length < len(cmd):
             raise MessageError(f'message length is too short: {reply}')
 
+        cmd[0] |= 0x40
         for i in range(0, len(cmd)):
             if reply.data[i] != cmd[i]:
-                raise MessageError(f'command echo mismatch: {reply}')
+                raise MessageError(f'command echo mismatch: {reply.data[i]:02x} != {cmd[i]:02x}')
 
         residual = reply.length - len(cmd)
         if (residual > 0):
@@ -902,11 +908,6 @@ def do_cas_jbe_test(interface, args):
     interface.send(MSG_scantool(0x40, 0x03, cmd))
     get_response(0x40, cmd)
 
-    # ???
-    cmd = [0x30, 0x01, 0x01]
-    interface.send(MSG_scantool(0x40, 0x03, cmd))
-    get_response(0x40, cmd)
-
     # CA_FA_LESEN block 0 (repeated)
     cmd = [0x22, 0x3f, 0x00]
     interface.send(MSG_scantool(0x40, 0x03, cmd))
@@ -914,13 +915,11 @@ def do_cas_jbe_test(interface, args):
 
     # send HARDWARE_REFERENZ_LESEN to the broadcast address
     cmd = [0x1a, 0x80]
-    interface.send(MSG_scantool(0xed, 0x02, cmd))
-
-    # expect a reply from CAS
+    interface.send(MSG_scantool(0xef, 0x02, cmd))
     get_response(0x40, cmd)
-
-    # expect a reply from JBE
     get_response(0x00, cmd)
+
+    logger.log('success')
 
 
 parser = argparse.ArgumentParser(description='E36 tail module tester')
