@@ -1,3 +1,5 @@
 FLASH
 Generated_Code
 Documentation
+*.pyc
+__pycache__
