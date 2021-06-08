@@ -132,6 +132,7 @@ class MSG_BMW_parameter(Message):
         super().__init__(raw=raw)
         if ((raw.arbitration_id & 0xf00) != 0x600) or (raw.dlc != 8):
             raise MessageError('not a BMW parameter message')
+        self.sender = raw.arbitration_id & 0xff
         self.recipient = self._values[0]
         self.sequence = self._values[1]
         if self.sequence == 0x10:
@@ -187,7 +188,6 @@ class MSG_BMW_parameter(Message):
                                           0x00,
                                           0x00,
                                           0x00)
-
 
 
 class MSG_ack(Message):
@@ -278,3 +278,18 @@ class MSG_status_faults(Message):
         super().__init__(raw=raw)
         self.output_faults = self._values[0:4]
         self.system_faults = self._values[7]
+
+
+class MSG_status_dde(Message):
+    """resent DDE status for AiM unit"""
+    _format = '>HHHH'
+    _arbid = 0x700
+    _extended = False
+
+    def __init__(self, raw):
+        super().__init__(raw=raw)
+        (self.fuel_temp,
+         self.intake_temp,
+         self.exhaust_temp,
+         self.manifold_pressure) = self._values
+

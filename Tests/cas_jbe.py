@@ -18,7 +18,11 @@ def do_cas_jbe_test(interface, args):
             msg = interface.recv(0.2)
             if msg is not None:
                 try:
-                    return MSG_BMW_parameter(msg)
+                    reply = MSG_BMW_parameter(msg)
+                    if reply.sender == 0xf1:
+                        # module trying to talk to DDE, ignore
+                        continue
+                    return reply
                 except MessageError:
                     try:
                         logger.log_console(msg)

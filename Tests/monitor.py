@@ -53,7 +53,7 @@ class ModuleState(object):
             return
         except MessageError:
             pass
-        if msg.arbitration_id not in [0x349, 0x130]:
+        if msg.arbitration_id not in [0x349, 0x130, 0x6f1, 0x700]:
             self.message_errors += 1
             self._logger.log(f'CAN? {msg}')
 
