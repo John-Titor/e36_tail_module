@@ -25,7 +25,7 @@ static timer_t          *timer_list = TIMER_LIST_END;
 static timer_call_t     *timer_call_list = TIMER_CALL_LIST_END;
 
 void
-timer_register(timer_t *timer)
+_timer_register(timer_t *timer)
 {
     REQUIRE(timer != NULL);
 
@@ -41,7 +41,7 @@ timer_register(timer_t *timer)
 }
 
 void
-timer_call_register(timer_call_t *call)
+_timer_call_register(timer_call_t *call)
 {
     EnterCritical();
 

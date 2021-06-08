@@ -11,9 +11,9 @@
 #define CAN_IDLE_TIMEOUT            2000
 
 /* 
- * Interval (ms) between fuel level reports
+ * Interval (ms) between status reports.
  */
-#define CAN_REPORT_INTERVAL_FUEL    500
+#define CAN_REPORT_INTERVAL_STATE   100
 
 /* 
  * Interval (ms) between CAN diagnostic messages.

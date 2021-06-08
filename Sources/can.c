@@ -10,8 +10,6 @@
 #include "pt.h"
 #include "timer.h"
 
-static volatile unsigned can_rx_count;
-
 typedef struct {
     uint32_t    id;
     uint8_t     dlc;
@@ -157,7 +155,7 @@ can_listen(struct pt *pt)
     pt_begin(pt);
 
     // set up the CAN idle timer
-    timer_register(&can_idle_timer);
+    timer_register(can_idle_timer);
     timer_reset(can_idle_timer, CAN_IDLE_TIMEOUT);
 
     for (;;) {
@@ -194,6 +192,13 @@ can_listen(struct pt *pt)
 
                 cas_jbe_recv(&buf->data[0]);
             }
+
+            // DDE response
+            else if ((buf->id == 0x612) &&
+                     (buf->dlc == 8)) {
+
+                dde_recv(&buf->data[0]);
+            }
         }
 
         // if we haven't heard a useful CAN message for a while...
@@ -208,32 +213,70 @@ can_listen(struct pt *pt)
 }
 
 void
-can_report_fuel(struct pt *pt)
+can_report_state(struct pt *pt)
 {
-    static timer_t can_report_fuel_timer;
+    static timer_t can_report_state_timer;
 
     pt_begin(pt);
-    timer_register(&can_report_fuel_timer);
+    timer_register(can_report_state_timer);
 
-    // loop forever sending fuel status messages at the specified interval
+    // loop forever sending state messages at the specified interval
     for (;;) {
         uint16_t mon_val;
         uint8_t data[8];
         uint8_t ret;
 
-        pt_delay(pt, can_report_fuel_timer, CAN_REPORT_INTERVAL_FUEL);
+        pt_delay(pt, can_report_state_timer, CAN_REPORT_INTERVAL_STATE);
 
-        // send BMW fuel level message
-        mon_val = monitor_get(MON_FUEL_LEVEL) * 6; // approximate scale 0-0x8000
-        data[0] = mon_val & 0xff;
-        data[1] = mon_val >> 8;
-        data[2] = mon_val & 0xff;
-        data[3] = mon_val >> 8;
-        data[4] = 0;
+        // 0x700 - DDE values
+
+        // Fuel temp in °C: (val / 100) - 55
+        data[0] = dde_state.fuel_temp >> 8;
+        data[1] = dde_state.fuel_temp & 0xff;
+
+        // Air temp in °C: (val / 100) - 100
+        data[2] = dde_state.intake_temp >> 8;
+        data[3] = dde_state.intake_temp & 0xff;
+
+        // Exhaust temp in °C: ((val / 32) - 50) 
+        data[4] = dde_state.exhaust_temp >> 8;
+        data[5] = dde_state.exhaust_temp & 0xff;
+        
+        // Manifold pressure in mBar
+        data[6] = dde_state.manifold_pressure >> 8;
+        data[7] = dde_state.manifold_pressure & 0xff;
 
         do {
-            ret = CAN1_SendFrameExt(0x349, DATA_FRAME, 5, &data[0]);
+            ret = CAN1_SendFrameExt(0x700, DATA_FRAME, 8, &data[0]);
         } while (ret == ERR_TXFULL);
+        pt_yield(pt);
+
+
+        // 0x702 - misc status
+
+        // Convert 0.5-4.5 to 0-100% for fuel level
+        mon_val = monitor_get(MON_FUEL_LEVEL);
+        if (mon_val < 500) {
+            data[0] = 0;
+        } else if (mon_val > 4500) {
+            data[0] = 100;
+        } else {
+            data[0] = (uint8_t)((mon_val - 500) / 40);
+        }
+
+        data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = 0;
+
+        // flags
+        data[7] = 
+            (dde_state_updated ? 0x01 : 0x00) |
+            (dde_state.oil_warn ? 0x40 : 0x00) |
+            (dde_state.mil ? 0x80 : 0x00);
+        dde_state_updated = FALSE;
+
+        do {
+            ret = CAN1_SendFrameExt(0x700, DATA_FRAME, 8, &data[0]);
+        } while (ret == ERR_TXFULL);
+
     }
     pt_end(pt);
 }
@@ -244,7 +287,7 @@ can_report_diags(struct pt *pt)
     static timer_t can_report_diags_timer;
 
     pt_begin(pt);
-    timer_register(&can_report_diags_timer);
+    timer_register(can_report_diags_timer);
 
     // loop forever sending diagnostic messages
     for (;;) {

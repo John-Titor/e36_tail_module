@@ -39,8 +39,8 @@ brake_thread(struct pt *pt)
     static timer_t brake_reset_timer;
 
     pt_begin(pt);
-    timer_register(&brake_timer);
-    timer_register(&brake_reset_timer);
+    timer_register(brake_timer);
+    timer_register(brake_reset_timer);
 
     
     // Turn lights off
@@ -128,7 +128,7 @@ tails_thread(struct pt *pt)
     static timer_t tails_timer;
 
     pt_begin(pt);
-    timer_register(&tails_timer);
+    timer_register(tails_timer);
  
     // Alt mode is short double blink every ~3s.
     //
@@ -175,7 +175,7 @@ rains_thread(struct pt *pt)
     static timer_t rains_timer;
 
     pt_begin(pt);
-    timer_register(&rains_timer);
+    timer_register(rains_timer);
 
     output_request(OUTPUT_RAINS, OUTPUT_STATE_OFF);
 

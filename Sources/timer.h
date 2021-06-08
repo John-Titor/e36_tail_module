@@ -26,10 +26,12 @@ typedef struct _timer_call {
 } timer_call_t;
 
 // register a one-shot timer
-extern void         timer_register(timer_t *timer);
+#define timer_register(_t)      _timer_register(&_t)
+extern void                     _timer_register(timer_t *timer);
 
 // register a timer callback
-extern void         timer_call_register(timer_call_t *call);
+#define timer_call_register(_t) _timer_call_register(&_t)
+extern void                     _timer_call_register(timer_call_t *call);
 
 // reset a one-shot timer or timer callback
 #define timer_reset(_timer, _delay)     \

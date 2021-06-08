@@ -36,11 +36,12 @@ extern void __require_abort(const char *file, int line);
 extern void print(const char *format, ...);
 
 /*
- * CAN things.
+ * Basic CAN things; listener, reporter, 
+ * debug, etc.
  */
 
 extern struct pt pt_can_listener;
-extern struct pt pt_can_report_fuel;
+extern struct pt pt_can_report_state;
 extern struct pt pt_can_report_diags;
 
 extern void can_trace(uint8_t code);
@@ -49,13 +50,42 @@ extern void can_putchar(char ch);
 extern void can_reinit(void);
 extern void can_rx_message(void);
 extern void can_listen(struct pt *pt);
-extern void can_report_fuel(struct pt *pt);
+extern void can_report_state(struct pt *pt);
 extern void can_report_diags(struct pt *pt);
+
+
+/*
+ * CAS / JBE emulator to enable ProTools
+ */
 
 extern struct pt pt_cas_jbe_emulator;
 
 extern void cas_jbe_recv(uint8_t *data);
 extern void cas_jbe_emulator(struct pt *pt);
+
+
+/*
+ * DDE scanner
+ */
+typedef struct
+{
+    uint16_t    fuel_temp;
+    uint16_t    exhaust_temp;
+    uint16_t    intake_temp;
+    uint16_t    manifold_pressure;
+    uint8_t     oil_warn;
+    uint8_t     mil;
+} dde_state_t;
+
+extern dde_state_t  dde_state;
+extern bool         dde_state_updated;
+extern struct pt pt_dde_scanner;
+extern struct pt pt_can_report_dde;
+
+extern void dde_recv(uint8_t *data);
+extern void dde_scanner(struct pt *pt);
+extern void dde_scanner(struct pt *pt);
+extern void can_report_dde(struct pt *pt);
 
 
 /*

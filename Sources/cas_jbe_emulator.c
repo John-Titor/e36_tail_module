@@ -148,6 +148,9 @@ cas_jbe_recv(uint8_t *data)
     if (!memcmp(&data[0], &script[emulator_index].message[0], 8)) {
         emulator_index++;
 
+        // have to stop the scanner to prevent interference
+        pt_stop(&pt_dde_scanner);
+
         // send responses up until the next match
         while (script[emulator_index].sender < 0xf0) {
             uint8_t ret;
@@ -176,8 +179,8 @@ cas_jbe_emulator(struct pt *pt)
     static timer_t terminal_status_timer;
 
     pt_begin(pt);
-    timer_register(&terminal_status_timer);
-    timer_register(&emulator_idle_timer);
+    timer_register(terminal_status_timer);
+    timer_register(emulator_idle_timer);
 
     for (;;) {
         uint8_t data[8];

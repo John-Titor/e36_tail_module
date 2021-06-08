@@ -18,9 +18,12 @@
 #include "defs.h"
 
 struct pt pt_can_listener;
-struct pt pt_can_report_fuel;
-struct pt pt_can_report_diags;
+struct pt pt_dde_scanner;
 struct pt pt_cas_jbe_emulator;
+
+struct pt pt_can_report_state;
+struct pt pt_can_report_diags;
+
 struct pt pt_brakes;
 struct pt pt_tails;
 struct pt pt_rains;
@@ -48,11 +51,16 @@ tail_module(void)
     for (;;) {
         (void)WDog1_Clear();                            // must be reset every 1s or better
 
-        // run threads
+        // listeners
         can_listen(&pt_can_listener);
-        can_report_fuel(&pt_can_report_fuel);
-        can_report_diags(&pt_can_report_diags);
+        dde_scanner(&pt_dde_scanner);
         cas_jbe_emulator(&pt_cas_jbe_emulator);
+
+        // reporters
+        can_report_state(&pt_can_report_state);
+        can_report_diags(&pt_can_report_diags);
+
+        // output handlers
         brake_thread(&pt_brakes);
         tails_thread(&pt_tails);
         rains_thread(&pt_rains);

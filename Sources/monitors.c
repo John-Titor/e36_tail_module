@@ -51,7 +51,7 @@ monitor_init()
     monitor_call.delay_ms = 1;
     monitor_call.callback = monitor_sample;
     monitor_call.period_ms = 5;
-    timer_call_register(&monitor_call);
+    timer_call_register(monitor_call);
 }
 
 uint16_t

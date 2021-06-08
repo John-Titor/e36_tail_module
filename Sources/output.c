@@ -57,7 +57,7 @@ output_thread(struct pt *pt, output_id_t output)
     // lazy-register the output's timer
     //
     if (!timer_registered(output_context[output].timer)) {
-        timer_register(&output_context[output].timer);
+        timer_register(output_context[output].timer);
     }
 
     pt_begin(pt);

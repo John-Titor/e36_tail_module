@@ -52,6 +52,8 @@ struct pt {
 
 #define pt_running(pt) (pt_status(pt) != PT_STATUS_FINISHED)
 
+#define pt_stop(pt) do { (pt)->status = PT_STATUS_FINISHED; } while(0)
+
 #define pt_wait(pt, cond)                                                       \
     do {                                                                        \
         pt_label(pt, PT_STATUS_BLOCKED);                                        \
