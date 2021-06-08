@@ -48,6 +48,7 @@
 #include "AD1.h"
 #include "DO_POWER.h"
 #include "CAN1.h"
+#include "IEE1.h"
 #include "TickTimer.h"
 #include "WDog1.h"
 /* Include shared modules, which are used for whole project */
