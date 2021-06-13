@@ -59,11 +59,13 @@ class CANInterface(object):
         wait for a message
 
         Note the can module will barf if a bad message is received, so we need
-        to catch this and retry
+        to catch this and retry.
         """
         deadline = time.time() + timeout
-        while time.time() < deadline:
+        while True:
             wait_time = deadline - time.time()
+            if wait_time <= 0:
+                return None
             try:
                 message = self._bus.recv(wait_time)
                 if self._verbose and message is not None:
@@ -71,7 +73,26 @@ class CANInterface(object):
                 return message
             except Exception:
                 pass
-        return None
+
+    def expect(self, expect_msg, timeout=2):
+        """expect to receive a specific message within the timeout"""
+        deadline = time.time() + timeout
+        while True:
+            wait_time = deadline - time.time()
+            if wait_time <= 0:
+                return None
+            msg = self.recv(0.1)
+            if msg is not None:
+                match = ((msg.arbitration_id == expect_msg.raw.arbitration_id) and
+                         (msg.is_extended_id == expect_msg.raw.is_extended_id) and
+                         (msg.dlc == expect_msg.raw.dlc))
+                if match:
+                    for idx in range(0, msg.dlc):
+                        if expect_msg.raw.data[idx] is not None:
+                            if msg.data[idx] != expect_msg.raw.data[idx]:
+                                match = False
+                if match:
+                    return msg
 
     def set_power_off(self):
         self.send(MSG_mjs_power.with_fields(False, False))

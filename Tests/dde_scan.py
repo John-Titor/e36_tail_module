@@ -8,60 +8,52 @@ from logger import Logger
 
 # DDE scanner / repeater test
 #
-def do_dde_scan(interface, args):
+def do_dde_scan_test(interface, args):
 
     logger = Logger(None, args)
 
-    def get_request():
-        """get a parameter request"""
-        deadline = time.time() + 1.0
-        request = []
-        expected_sequence = 0x10
-        expected_length = 0
-        while time.time() < deadline:
-            msg = interface.recv(0.1)
-            try:
-                req = MSG_BMW_parameter(msg, 0xf1)
-            except MessageError:
-                continue
+    def expect_setup_request():
+        """wait for a setup request"""
+        msg = [
+            MSG_BMW_parameter.long_with_initial_fields(0xf1, 0x12, 0x0e,
+                                                       [0x2c,
+                                                        0x10,
+                                                        0x03,
+                                                        0x85,
+                                                        0x04]),
+            MSG_BMW_parameter.long_with_continuation_fields(0xf1, 0x12, 0x21,
+                                                            [0x1b,
+                                                             0x07,
+                                                             0x6f,
+                                                             0x06,
+                                                             0x6d,
+                                                             0x0a]),
+            MSG_BMW_parameter.long_with_continuation_fields(0xf1, 0x12, 0x22,
+                                                            [0x8d,
+                                                             0x10,
+                                                             0x06,
+                                                             0xff,
+                                                             0xff,
+                                                             0xff]),
+        ]
+        if interface.expect(msg[0]) is None:
+            raise ModuleError('timed out waiting for setup request seq 0x10')
+        interface.send(MSG_BMW_parameter.continuation_request(0x12, 0xf1))
+        if interface.expect(msg[1]) is None:
+            raise ModuleError('timed out waiting for setup request seq 0x21')
+        if interface.expect(msg[2]) is None:
+            raise ModuleError('timed out waiting for setup request seq 0x21')
 
-            if req.sequence != expected_sequence:
-                raise MessageError(f'unexpected sequence {req.sequence}')
-
-            if expected_sequence == 0x10:
-                expected_length = req.length
-            request += req.data
-
-            if len(request) >= expected_length:
-
-                # verify that it's a full setup request
-                if len(req) == 14:
-                    if ((req[0] != 0x2c) or
-                        (req[1] != 0x10) or
-                        (req[2] != 0x03) or
-                        (req[3] != 0x85) or
-                        (req[4] != 0x04) or
-                        (req[5] != 0x1b) or
-                        (req[6] != 0x07) or
-                        (req[7] != 0x6f) or
-                        (req[8] != 0x06) or
-                        (req[9] != 0x6d) or
-                        (req[10] != 0x0a) or
-                        (req[11] != 0x8d) or
-                        (req[12] != 0x10) or
-                        (req[13] != 0x06)):
-                        raise MessageError(f'malformed full request {req}')
-                else if len(req) == 2:
-                    if ((req[0] != 0x2c) or
-                        (req[1] != 0x10)):
-                        raise MessageError(f'malformed resume request {req}')
-                else:
-                    raise MessageError(f'malformed request {req}')
-                return len(req)
-
-        raise ModuleError('timeout waiting for request')
+    def expect_repeat_request():
+        """wait for a repeat request"""
+        msg = MSG_BMW_parameter.long_with_initial_fields(0xf1, 0x12, 0x02,
+                                                         [0x2c,
+                                                          0x10])
+        if interface.expect(msg) is None:
+            raise ModuleError('timed out waiting for repeat request')
 
     def send_response(offset):
+        """send a canned response with predictable values"""
         interface.send(MSG_BMW_parameter.long_with_initial_fields(0x12,
                                                                   0xf1,
                                                                   0x0c,
@@ -70,6 +62,10 @@ def do_dde_scan(interface, args):
                                                                    0x11 + offset,
                                                                    0x22 + offset,
                                                                    0x33 + offset]))
+
+        if interface.expect(MSG_BMW_parameter.continuation_request(0xf1, 0x12)) is None:
+            raise ModuleError('timeout waiting for reply-continue message')
+
         interface.send(MSG_BMW_parameter.long_with_continuation_fields(0x12,
                                                                        0xf1,
                                                                        0x21,
@@ -90,7 +86,7 @@ def do_dde_scan(interface, args):
                                                                         0xff]))
 
     def get_repeat(expected_ft, expected_iat, expected_egt, expected_map):
-        """get a parameter repeat message"""
+        """get a parameter repeat message with expected values"""
         deadline = time.time() + 1.0
         while time.time() < deadline:
             msg = interface.recv(0.1)
@@ -108,17 +104,9 @@ def do_dde_scan(interface, args):
 
         raise ModuleError('timeout waiting for repeat')
 
-    # wait for setup request
-    req = get_request()
-
-    # ignore it
-
-    # wait for setup request
-    reqlen = get_request()
-
-    # verify that it's a full setup request
-    if reqlen != 14:
-        raise MessageError(f'expected 14 bytes of request, got {reqlen}')
+    # wait for setup requests; ignore first, make sure there is a second
+    expect_setup_request()
+    expect_setup_request()
 
     # send response
     send_response(0)
@@ -127,11 +115,7 @@ def do_dde_scan(interface, args):
     get_repeat(0x1122, 0x3344, 0x5566, 0x7788)
 
     # wait for repeat request
-    reqlen = get_request()
-
-    # verify that it's a repeat request
-    if reqlen != 2:
-        raise MessageError(f'expected 2 bytes of repeat request, got {reqlen}')
+    expect_repeat_request()
 
     # send response
     send_response(1)
@@ -140,13 +124,7 @@ def do_dde_scan(interface, args):
     get_repeat(0x1223, 0x3445, 0x5667, 0x7889)
 
     # ignore requests and wait for setup request again
-    deadline = time.time() + 2.0
-    while True:
-        reqlen = get_request()
-        if reqlen == 14:
-            break
-        if time.time() > deadline:
-            raise ModuleError(f'module did not re-send setup request')
+    expect_setup_request()
 
     # send message that looks like a 'real' scantool
     interface.send(MSG_BMW_parameter.short_with_fields(0xf1,
@@ -160,11 +138,14 @@ def do_dde_scan(interface, args):
                                                         0x00]))
 
     # wait for a request - fail if we hear more than one
-    try:
-        get_request()
-        raise RuntimeError('module did not silence after scantool signed on')
-    except ModuleError:
-        pass
+    count = 0
+    while True:
+        try:
+            expect_setup_request()
+            count += 1
+        except ModuleError:
+            break
+        if count > 1:
+            raise ModuleError('module did not silence after scantool sign-on')
 
     print('success')
-

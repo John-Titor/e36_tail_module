@@ -92,7 +92,6 @@ static void
 dde_send_complete()
 {
     uint8_t seq = 0x21;
-    bufidx = 6;
 
     while (bufidx < buflen) {
         uint8_t i;

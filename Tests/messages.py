@@ -154,7 +154,7 @@ class MSG_BMW_parameter(Message):
                                           *cmd_bytes)
 
     @classmethod
-    def long_with_initial_fields(cls, sender, recipient, len, cmd):
+    def long_with_initial_fields(cls, sender, recipient, length, cmd):
         """first part of a long message"""
         cmd_bytes = cmd
         while len(cmd_bytes) < 5:

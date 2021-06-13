@@ -22,7 +22,7 @@ from logger import Logger
 
 from monitor import do_monitor
 from cas_jbe import do_cas_jbe_test
-from dde_scan import do_dde_scan
+from dde_scan import do_dde_scan_test
 
 
 parser = argparse.ArgumentParser(description='E36 tail module tester')
