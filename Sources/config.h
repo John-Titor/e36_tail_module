@@ -15,6 +15,11 @@
  */
 #define CAN_DDE_TIMEOUT             500
 
+/*
+ * Timeout (ms) before deciding the scantool has disconnected.
+ */
+#define CAN_SCANTOOL_TIMEOUT        2000
+
 /* 
  * Interval (ms) between status reports.
  */

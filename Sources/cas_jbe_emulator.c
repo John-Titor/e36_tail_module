@@ -165,7 +165,7 @@ cas_jbe_recv(uint8_t *data)
             } while (ret == ERR_TXFULL);
             emulator_index++;
         }
-        timer_reset(emulator_idle_timer, 500);
+        timer_reset(emulator_idle_timer, CAN_SCANTOOL_TIMEOUT);
     } else {
         // reset on mismatch
         emulator_index = 0;
