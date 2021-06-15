@@ -53,8 +53,10 @@ tail_module(void)
 
         // listeners
         can_listen(&pt_can_listener);
-        dde_scanner(&pt_dde_scanner);
         cas_jbe_emulator(&pt_cas_jbe_emulator);
+        if (pt_running(&pt_dde_scanner)) {
+            dde_scanner(&pt_dde_scanner);
+        }
 
         // reporters
         can_report_state(&pt_can_report_state);

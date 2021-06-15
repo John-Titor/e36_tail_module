@@ -15,8 +15,8 @@ static uint8_t  buf[64];
 static uint8_t  buflen;
 static uint8_t  bufidx;
 
-dde_state_t     dde_state;
-bool            dde_state_updated;
+bool    dde_oil_warning;
+bool    dde_mil_state;
 
 static void
 dde_send(const uint8_t *data)
@@ -53,21 +53,46 @@ dde_send_initial_req()
     dde_send(&buf[0]);
 
     // account for sent portion
-    if (buflen <= 8) {
-        bufidx = 0;
-        buflen = 0;
-    } else {
-        bufidx = 8;
-    }
+    bufidx = 8;
 }
 
-static void
-dde_parse_rsp()
+static bool
+dde_echo_response()
 {
-    if (buflen == sizeof(dde_state)) {
-        (void)memcpy(&dde_state, &buf[0], sizeof(dde_state));
+    if ((buflen > 0) && (bufidx == buflen)) {
+
+        // reflect the query response
+        uint8_t data[8];
+        uint8_t ret;
+
+        // Fuel temp in °C: (val / 100) - 55
+        data[0] = buf[0];
+        data[1] = buf[1];
+
+        // Air temp in °C: (val / 100) - 100
+        data[2] = buf[4];
+        data[3] = buf[5];
+
+        // Exhaust temp in °C: ((val / 32) - 50) 
+        data[4] = buf[2];
+        data[5] = buf[3];
+
+        // Manifold pressure in mBar
+        data[6] = buf[6];
+        data[7] = buf[7];
+
+        do {
+            ret = CAN1_SendFrameExt(0x700, DATA_FRAME, 8, &data[0]);
+        } while (ret == ERR_TXFULL);
+
+        // save these to report with other internal data
+        dde_oil_warning = buf[8];
+        dde_mil_state = buf[9];
+
+        buflen = bufidx = 0;
+        return TRUE;
     }
-    dde_state_updated = TRUE;
+    return FALSE;
 }
 
 static void
@@ -172,25 +197,38 @@ dde_scanner(struct pt *pt)
     // Send initial request
     dde_send_initial_req();
 
-    // loop
-    for (;;) {
-        // wait for reply
-        timer_reset(dde_timeout, 100);
-        pt_wait(pt, timer_expired(dde_timeout) || ((buflen > 0) && (bufidx == buflen)));
-        if (timer_expired(dde_timeout)) {
-            pt_reset(pt);
-            return;
-        }
+    // wait for request to be sent or timeout
+    timer_reset(dde_timeout, 500);
+    pt_wait(pt, (buflen == 0) || timer_expired(dde_timeout));
 
-        // process response buffer
-        dde_parse_rsp();
-
-        // wait 100ms
-        pt_delay(pt, dde_timeout, 100);
-
-        // Send repeat request
-        dde_send_repeat_req();
+    if (buflen != 0) {
+        // timed out, reset thread and try again
+        pt_reset(pt);
+        return;
     }
 
+    // reset timout for reply
+    timer_reset(dde_timeout, 500);
+
+    // loop echoing reply & sending repeat request
+    for (;;) {
+        if (dde_echo_response() == TRUE) {
+            // wait 100ms
+            pt_delay(pt, dde_timeout, 100);
+
+            // Send repeat request
+            dde_send_repeat_req();
+
+            // wait for reply
+            timer_reset(dde_timeout, 100);
+        } 
+        else if (timer_expired(dde_timeout)) {
+            pt_reset(pt);
+            return;
+        } 
+        else {
+            pt_yield(pt);
+        }
+    }
     pt_end(pt);
 }

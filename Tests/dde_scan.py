@@ -11,6 +11,7 @@ from logger import Logger
 def do_dde_scan_test(interface, args):
 
     logger = Logger(None, args)
+    logger.log('dde scanner test start')
 
     def expect_setup_request():
         """wait for a setup request"""
@@ -107,35 +108,35 @@ def do_dde_scan_test(interface, args):
     # wait for setup requests; ignore first, make sure there is a second
     expect_setup_request()
     expect_setup_request()
+    logger.log('got setup request')
 
     # send response
     send_response(0)
 
     # wait for repeated version & validate values
-    get_repeat(0x1122, 0x3344, 0x5566, 0x7788)
+    get_repeat(0x1122, 0x5566, 0x3344, 0x7788)
+    logger.log('got echo')
 
     # wait for repeat request
     expect_repeat_request()
+    logger.log('got repeat')
 
     # send response
     send_response(1)
 
     # wait for repeated version
-    get_repeat(0x1223, 0x3445, 0x5667, 0x7889)
+    get_repeat(0x1223, 0x5667, 0x3445, 0x7889)
+    logger.log('got echo 2')
 
     # ignore requests and wait for setup request again
     expect_setup_request()
+    logger.log('got setup reset')
 
     # send message that looks like a 'real' scantool
     interface.send(MSG_BMW_parameter.short_with_fields(0xf1,
                                                        0x40,
-                                                       [0x02,
-                                                        0x1a,
-                                                        0x80,
-                                                        0x00,
-                                                        0x00,
-                                                        0x00,
-                                                        0x00]))
+                                                       [0x1a,
+                                                        0x80]))
 
     # wait for a request - fail if we hear more than one
     count = 0

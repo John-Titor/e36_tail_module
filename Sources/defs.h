@@ -67,18 +67,9 @@ extern void cas_jbe_emulator(struct pt *pt);
 /*
  * DDE scanner
  */
-typedef struct
-{
-    uint16_t    fuel_temp;
-    uint16_t    exhaust_temp;
-    uint16_t    intake_temp;
-    uint16_t    manifold_pressure;
-    uint8_t     oil_warn;
-    uint8_t     mil;
-} dde_state_t;
 
-extern dde_state_t  dde_state;
-extern bool         dde_state_updated;
+extern bool dde_oil_warning;
+extern bool dde_mil_state;
 extern struct pt pt_dde_scanner;
 extern struct pt pt_can_report_dde;
 

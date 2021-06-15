@@ -228,30 +228,6 @@ can_report_state(struct pt *pt)
 
         pt_delay(pt, can_report_state_timer, CAN_REPORT_INTERVAL_STATE);
 
-        // 0x700 - DDE values
-
-        // Fuel temp in °C: (val / 100) - 55
-        data[0] = dde_state.fuel_temp >> 8;
-        data[1] = dde_state.fuel_temp & 0xff;
-
-        // Air temp in °C: (val / 100) - 100
-        data[2] = dde_state.intake_temp >> 8;
-        data[3] = dde_state.intake_temp & 0xff;
-
-        // Exhaust temp in °C: ((val / 32) - 50) 
-        data[4] = dde_state.exhaust_temp >> 8;
-        data[5] = dde_state.exhaust_temp & 0xff;
-        
-        // Manifold pressure in mBar
-        data[6] = dde_state.manifold_pressure >> 8;
-        data[7] = dde_state.manifold_pressure & 0xff;
-
-        do {
-            ret = CAN1_SendFrameExt(0x700, DATA_FRAME, 8, &data[0]);
-        } while (ret == ERR_TXFULL);
-        pt_yield(pt);
-
-
         // 0x702 - misc status
 
         // Convert 0.5-4.5 to 0-100% for fuel level
@@ -268,13 +244,11 @@ can_report_state(struct pt *pt)
 
         // flags
         data[7] = 
-            (dde_state_updated ? 0x01 : 0x00) |
-            (dde_state.oil_warn ? 0x40 : 0x00) |
-            (dde_state.mil ? 0x80 : 0x00);
-        dde_state_updated = FALSE;
+            (dde_oil_warning ? 0x40 : 0x00) |
+            (dde_mil_state ? 0x80 : 0x00);
 
         do {
-            ret = CAN1_SendFrameExt(0x700, DATA_FRAME, 8, &data[0]);
+            ret = CAN1_SendFrameExt(0x702, DATA_FRAME, 8, &data[0]);
         } while (ret == ERR_TXFULL);
 
     }
