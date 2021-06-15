@@ -36,6 +36,8 @@
 #include "timer.h"
 #include "defs.h"
 
+#if CAN_EMULATE_CAS_JBE
+
 static struct {
     uint8_t sender;
     uint8_t message[8];
@@ -201,3 +203,5 @@ cas_jbe_emulator(struct pt *pt)
 
     pt_end(pt);
 }
+
+#endif // CAN_EMULATE_CAS_JBE

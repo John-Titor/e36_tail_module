@@ -15,11 +15,6 @@
  */
 #define CAN_DDE_TIMEOUT             500
 
-/*
- * Timeout (ms) before deciding the scantool has disconnected.
- */
-#define CAN_SCANTOOL_TIMEOUT        2000
-
 /* 
  * Interval (ms) between status reports.
  */
@@ -60,5 +55,20 @@
  * Delay between retries for an overloaded output (ms).
  */
 #define SENSE_OVERLOAD_RETRY_INTERVAL   1000
+
+/*
+ * Set to 1 to enable CAS / JBE emulation for scantool support.
+ *
+ * Note that this is broken, as the DDE and EKP talk over each
+ * other, possibly due to some missing network management messages.
+ */
+#define CAN_EMULATE_CAS_JBE         0
+
+/*
+ * Timeout (ms) before deciding the scantool has disconnected.
+ */
+#define CAN_SCANTOOL_TIMEOUT        2000
+
+
 
 #endif // _CONFIG_H

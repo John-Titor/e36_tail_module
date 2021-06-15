@@ -19,7 +19,9 @@
 
 struct pt pt_can_listener;
 struct pt pt_dde_scanner;
+#if CAN_EMULATE_CAS_JBE
 struct pt pt_cas_jbe_emulator;
+#endif // CAN_EMULATE_CAS_JBE
 
 struct pt pt_can_report_state;
 struct pt pt_can_report_diags;
@@ -53,7 +55,9 @@ tail_module(void)
 
         // listeners
         can_listen(&pt_can_listener);
+#if CAN_EMULATE_CAS_JBE
         cas_jbe_emulator(&pt_cas_jbe_emulator);
+#endif // CAN_EMULATE_CAS_JBE
         if (pt_running(&pt_dde_scanner)) {
             dde_scanner(&pt_dde_scanner);
         }

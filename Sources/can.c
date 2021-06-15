@@ -186,12 +186,14 @@ can_listen(struct pt *pt)
                 rain_light_request((buf->data[0] & 0x40) ? LIGHT_ON : LIGHT_OFF);
             }
 
+#if CAN_EMULATE_CAS_JBE
             // EDIABAS-style request
             else if ((buf->id == 0x6f1) &&
                      (buf->dlc == 8)) {
 
                 cas_jbe_recv(&buf->data[0]);
             }
+#endif // CAN_EMULATE_CAS_JBE
 
             // DDE response
             else if ((buf->id == 0x612) &&
