@@ -198,7 +198,7 @@ dde_scanner(struct pt *pt)
     dde_send_initial_req();
 
     // wait for request to be sent or timeout
-    timer_reset(dde_timeout, 500);
+    timer_reset(dde_timeout, CAN_DDE_TIMEOUT);
     pt_wait(pt, (buflen == 0) || timer_expired(dde_timeout));
 
     if (buflen != 0) {
@@ -208,19 +208,19 @@ dde_scanner(struct pt *pt)
     }
 
     // reset timout for reply
-    timer_reset(dde_timeout, 500);
+    timer_reset(dde_timeout, CAN_DDE_TIMEOUT);
 
     // loop echoing reply & sending repeat request
     for (;;) {
         if (dde_echo_response() == TRUE) {
             // wait 100ms
-            pt_delay(pt, dde_timeout, 100);
+            pt_delay(pt, dde_timeout, CAN_REPORT_INTERVAL_STATE);
 
             // Send repeat request
             dde_send_repeat_req();
 
             // wait for reply
-            timer_reset(dde_timeout, 100);
+            timer_reset(dde_timeout, CAN_DDE_TIMEOUT);
         } 
         else if (timer_expired(dde_timeout)) {
             pt_reset(pt);
