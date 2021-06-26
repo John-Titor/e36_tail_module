@@ -1,0 +1,10 @@
+Releases:
+  1:
+    ✔ brake, tail, rain lights functional @done (21-06-25 11:42)
+    ✔ DDE polling & retransmission @done (21-06-25 11:42)
+  2:
+    ☐ EGS polling and retransmission
+
+TODO:
+  ☐ layerize ISO-TP and KWP2000
+  ☐ determine KWP request for EGS temperature
