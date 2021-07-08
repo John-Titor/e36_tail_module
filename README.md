@@ -5,7 +5,7 @@ This is firmware for an MRS Microplex 7X installed in an M57-swapped BMW E36 M3.
  - Brake, tail and rain light management.
  - Fuel level sensing / reporting.
  - DDE (and in future EGS) parameter reading and reformatting.
- - CAS and JBE emulation to support BimmerGeeks ProTool and the XHP transmission tuning tool.
+ - ~~CAS and JBE emulation to support BimmerGeeks ProTool and the XHP transmission tuning tool.~~
 
 ## System
 
