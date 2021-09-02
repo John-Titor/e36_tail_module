@@ -1,104 +1,94 @@
 #!/usr/bin/env python3
 
-import can
 import time
 from messages import MSG_mjs_power, MSG_ack
+from PCANBasic import *
 
 
 class CANInterface(object):
     def __init__(self, args):
+        speed_table = {
+            1000: PCAN_BAUD_1M,
+            800: PCAN_BAUD_800K,
+            500: PCAN_BAUD_500K,
+            250: PCAN_BAUD_250K,
+            125: PCAN_BAUD_125K,
+        }
+        try:
+            speed = speed_table[args.can_speed]
+        except KeyError:
+            raise RuntimeError(f'Requested CAN speed {args.can_speed} not supported')
+
         self._verbose = args.verbose
-        # bootloader always signs on at 125kbps
-        self._interface_type = args.interface_type
-        self._interface = args.interface
-        self._reinit(125000)
-        self._detect(args.T15_at_start)
+        self._pcan = PCANBasic()
+        self._channel = PCAN_USBBUS1
+        result = self._pcan.Initialize(self._channel, speed)
+        if result != PCAN_ERROR_OK:
+            raise RuntimeError(f'PCAN init failed: {self._pcan.GetErrorText(result)}')
+        self._pcan.Reset(self._channel)
 
-        # get a new interface at the runtime bitrate
-        self._reinit(args.can_speed)
+    def send(self, message):
+        """send the message"""
+        self._trace(f'CAN TX: {message}')
+        self._pcan.Write(self._channel, message.raw)
 
-    def _reinit(self, bitrate):
-        self._bus = can.interface.Bus(bustype=self._interface_type,
-                                      channel=self._interface,
-                                      bitrate=bitrate,
-                                      sleep_after_open=0.2)
+    def recv(self, timeout=2):
+        """
+        wait for a message
 
-    def _detect(self, with_t15=False):
+        Poll hard for the first 100ms, then fall back to only checking once every 10ms.
+        """
+        now = time.time()
+        deadline = now + timeout
+        fastpoll = now + 0.1
+        while True:
+            (status, msg, _) = self._pcan.Read(self._channel)
+            if status == PCAN_ERROR_OK:
+                if msg.ID in RECEIVE_FILTER:
+                    self._trace(f'CAN RX: {msg}')
+                    return msg
+            elif status != PCAN_ERROR_QRCVEMPTY:
+                raise RuntimeError(f'PCAN read failed: {self._pcan.GetErrorText(status)}')
+            now = time.time()
+            if now > deadline:
+                return None
+            if now > fastpoll:
+                time.sleep(0.01)
+
+    def set_power_off(self):
+        self.send(MSG_module_power(False, False))
+
+    def set_power_t30(self):
+        self.send(MSG_module_power(True, False))
+
+    def set_power_t30_t15(self):
+        self.send(MSG_module_power(True, True))
+
+    def detect(self):
         """
         Power on the module and listen for it to sign on.
+        Send it a select to keep it in the bootloader for a while.
         Returns the ID of the detected module.
         """
         self.set_power_off()
-        while self.recv(0.25) is not None:
-            # drain buffered messages
-            pass
-        if with_t15:
-            self.set_power_t30_t15()
-        else:
-            self.set_power_t30()
+        time.sleep(0.25)
+        self._drain()
+        self.set_power_t30()
         while True:
-            rsp = self.recv(2)
+            rsp = self.recv(5)
             if rsp is None:
                 raise ModuleError('no power-on message from module')
             try:
                 signon = MSG_ack(rsp)
                 break
             except MessageError as e:
-                raise ModuleError(f'unexpected power-on message '
-                                  'from module: {rsp}')
+                raise ModuleError(f'unexpected power-on message from module: {rsp}')
+        self.send(MSG_select(signon.module_id))
+        rsp = self.recv()
+        if rsp is None:
+            raise ModuleError('no select response from module')
+        try:
+            signon = MSG_selected(rsp)
+        except MessageError as e:
+            raise ModuleError(f'unexpected select response from module : {rsp}')
         return signon.module_id
-
-    def send(self, message):
-        """send the message"""
-        self._bus.send(message.raw, 1)
-        if self._verbose:
-            print(f'CAN SEND: {message}')
-
-    def recv(self, timeout=2):
-        """
-        wait for a message
-
-        Note the can module will barf if a bad message is received, so we need
-        to catch this and retry.
-        """
-        deadline = time.time() + timeout
-        while True:
-            wait_time = deadline - time.time()
-            if wait_time <= 0:
-                return None
-            try:
-                message = self._bus.recv(wait_time)
-                if self._verbose and message is not None:
-                    print(f'CAN RECV: {message}')
-                return message
-            except Exception:
-                pass
-
-    def expect(self, expect_msg, timeout=2):
-        """expect to receive a specific message within the timeout"""
-        deadline = time.time() + timeout
-        while True:
-            wait_time = deadline - time.time()
-            if wait_time <= 0:
-                return None
-            msg = self.recv(0.1)
-            if msg is not None:
-                match = ((msg.arbitration_id == expect_msg.raw.arbitration_id) and
-                         (msg.is_extended_id == expect_msg.raw.is_extended_id) and
-                         (msg.dlc == expect_msg.raw.dlc))
-                if match:
-                    for idx in range(0, msg.dlc):
-                        if expect_msg.raw.data[idx] is not None:
-                            if msg.data[idx] != expect_msg.raw.data[idx]:
-                                match = False
-                if match:
-                    return msg
-
-    def set_power_off(self):
-        self.send(MSG_mjs_power.with_fields(False, False))
-
-    def set_power_t30(self):
-        self.send(MSG_mjs_power.with_fields(True, False))
-
-    def set_power_t30_t15(self):
-        self.send(MSG_mjs_power.with_fields(True, True))

@@ -21,21 +21,10 @@ from interface import *
 from logger import Logger
 
 from monitor import do_monitor
-from cas_jbe import do_cas_jbe_test
 from dde_scan import do_dde_scan_test
 
 
 parser = argparse.ArgumentParser(description='E36 tail module tester')
-parser.add_argument('--interface',
-                    type=str,
-                    required=True,
-                    metavar='INTERFACE_NAME',
-                    help='interface name or path')
-parser.add_argument('--interface-type',
-                    type=str,
-                    metavar='INTERFACE_TYPE',
-                    default='slcan',
-                    help='interface type')
 parser.add_argument('--can-speed',
                     type=int,
                     default=125000,
@@ -55,9 +44,6 @@ actiongroup = parser.add_mutually_exclusive_group(required=True)
 actiongroup.add_argument('--monitor',
                          action='store_true',
                          help='interactive monitor')
-actiongroup.add_argument('--cas-jbe',
-                         action='store_true',
-                         help='test the CAS / JBE emulator')
 actiongroup.add_argument('--dde-scan',
                          action='store_true',
                          help='test the DDE scan / repeater')
@@ -69,8 +55,6 @@ try:
     interface = CANInterface(args)
     if args.monitor:
         curses.wrapper(do_monitor, interface, args)
-    elif args.cas_jbe:
-        do_cas_jbe_test(interface, args)
     elif args.dde_scan:
         do_dde_scan_test(interface, args)
 except KeyboardInterrupt:
