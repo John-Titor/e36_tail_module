@@ -5,6 +5,12 @@ Releases:
   2:
     ☐ EGS polling and retransmission
 
+Testing:
+  ☐ migrate to PCAN interface
+  ✔ remove CAS/JBE tests @done (21-09-02 00:01)
+  ☐ add EGS tests
+  ☐ DDE / EGS emulation for monitor mode
+
 TODO:
   ☐ layerize ISO-TP and KWP2000
   ☐ determine KWP request for EGS temperature

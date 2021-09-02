@@ -192,10 +192,6 @@ can_listen(struct pt *pt)
 
                 // have to stop the DDE scanner to prevent interference
                 pt_stop(&pt_dde_scanner);
-
-#if CAN_EMULATE_CAS_JBE
-                cas_jbe_recv(&buf->data[0]);
-#endif // CAN_EMULATE_CAS_JBE
             }
 
             // DDE response

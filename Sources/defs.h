@@ -53,18 +53,6 @@ extern void can_listen(struct pt *pt);
 extern void can_report_state(struct pt *pt);
 extern void can_report_diags(struct pt *pt);
 
-
-#if CAN_EMULATE_CAS_JBE
-/*
- * CAS / JBE emulator to enable ProTools
- */
-
-extern struct pt pt_cas_jbe_emulator;
-
-extern void cas_jbe_recv(uint8_t *data);
-extern void cas_jbe_emulator(struct pt *pt);
-#endif // CAN_EMULATE_CAS_JBE
-
 /*
  * DDE scanner
  */
