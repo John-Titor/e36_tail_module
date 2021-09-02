@@ -1,5 +1,5 @@
 /*
- * Perform a periodic scan of the DDE to fetch interesting
+ * Perform a periodic scan of BMW modules to fetch interesting
  * values, and re-broadcast them in messages that less
  * intelligent listeners can pick up.
  */

@@ -82,22 +82,22 @@ can_reinit(void)
     // configure filters
     CANIDAC = 0x10;             // 4x16 filters
 
-    CANIDAR0 = 0x15;            // 0x0a8
+    CANIDAR0 = 0x15;            // 0x0a8 - brake pedal from DDE
     CANIDAR1 = 0x00;
     CANIDMR0 = 0xff;
     CANIDMR1 = 0xe0;
 
-    CANIDAR2 = 0x43;            // 0x21a
+    CANIDAR2 = 0x43;            // 0x21a - general lighting
     CANIDAR3 = 0x40;
     CANIDMR2 = 0xff;
     CANIDMR3 = 0xe0;
 
-    CANIDAR4 = 0xde;            // 0x6xx
+    CANIDAR4 = 0xde;            // 0x6xx - ISO-TP
     CANIDAR5 = 0x20;
     CANIDMR4 = 0xe0;
     CANIDMR5 = 0x00;
 
-    CANIDAR6 = 0x00;            // 0x000
+    CANIDAR6 = 0x00;            // 0x000 - not used
     CANIDAR7 = 0x00;
     CANIDMR6 = 0xff;
     CANIDMR7 = 0xe0;
@@ -186,7 +186,7 @@ can_listen(struct pt *pt)
                 rain_light_request((buf->data[0] & 0x40) ? LIGHT_ON : LIGHT_OFF);
             }
 
-            // EDIABAS-style request
+            // ISO-TP message from diagnostic tool
             else if ((buf->id == 0x6f1) &&
                      (buf->dlc == 8)) {
 
@@ -194,12 +194,19 @@ can_listen(struct pt *pt)
                 pt_stop(&pt_dde_scanner);
             }
 
-            // DDE response
+            // ISO-TP message from DDE
             else if ((buf->id == 0x612) &&
                      (buf->dlc == 8)) {
 
                 dde_recv(&buf->data[0]);
             }
+#if 0
+            // ISO-TP message from EGS
+            else if ((buf->id == 0x618) &&
+                     (buf->dlc == 8)) {
+                egs_recv(&buf->data[[0]]);
+            }
+#endif
         }
 
         // if we haven't heard a useful CAN message for a while...

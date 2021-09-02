@@ -54,6 +54,28 @@ extern void can_report_state(struct pt *pt);
 extern void can_report_diags(struct pt *pt);
 
 /*
+ * ISO-TP framer 
+ */
+
+#define ISO_TP_SUCCESS      0
+#define ISO_TP_BUSY         1
+#define ISO_TP_TIMEOUT      2
+
+struct iso_tp_request {
+    uint8_t     len;        /* payload length in bytes */
+    uint8_t     sender;     /* originator address */
+    uint8_t     recipient;  /* recipient address 0x00... 0xfe */
+    uint16_t    timeout_ms; /* send timeout */
+    uint8_t     *buf;       /* payload bytes */
+};
+
+extern uint8_t iso_tp_send(struct iso_tp_tx_request *req);
+extern uint8_t iso_tp_tx_done(void);
+extern uint8_t iso_tp_recv(struct iso_tp_rx_request *req);
+extern uint8_t iso_tp_rx_done(void);
+extern void iso_tp_sender(struct pt *pt);
+
+/*
  * DDE scanner
  */
 

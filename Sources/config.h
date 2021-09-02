@@ -61,6 +61,10 @@
  */
 #define CAN_SCANTOOL_TIMEOUT        2000
 
+/*
+ * Enable the (experimental) ISO-TP code
+ */
+#define CAN_ENABLE_ISO_TP           0
 
 
 #endif // _CONFIG_H

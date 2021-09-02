@@ -18,6 +18,7 @@
 #include "defs.h"
 
 struct pt pt_can_listener;
+struct pt pt_iso_tp;
 struct pt pt_dde_scanner;
 
 struct pt pt_can_report_state;
@@ -50,7 +51,7 @@ tail_module(void)
     for (;;) {
         (void)WDog1_Clear();                            // must be reset every 1s or better
 
-        // listeners
+        // CAN protocol handling
         can_listen(&pt_can_listener);
         iso_tp_sender(&pt_iso_tp);
         if (pt_running(&pt_dde_scanner)) {
