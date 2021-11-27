@@ -61,32 +61,34 @@ extern void can_report_diags(struct pt *pt);
 #define ISO_TP_BUSY         1
 #define ISO_TP_TIMEOUT      2
 
-struct iso_tp_request {
-    uint8_t     len;        /* payload length in bytes */
-    uint8_t     sender;     /* originator address */
-    uint8_t     recipient;  /* recipient address 0x00... 0xfe */
-    uint16_t    timeout_ms; /* send timeout */
-    uint8_t     *buf;       /* payload bytes */
-};
+extern uint8_t iso_tp_send(uint8_t len,         /* payload length in bytes */
+                           uint8_t sender,      /* originator address */
+                           uint8_t recipient,   /* recipient address 0x00... 0xfe */
+                           uint16_t timeout_ms, /* send timeout */
+                           uint8_t buf);        /* payload bytes */
+extern uint8_t iso_tp_recv(uint8_t len,         /* required reply length in bytes */
+                           uint8_t sender,      /* originator address */
+                           uint8_t recipient,   /* recipient address 0x00... 0xfe */
+                           uint16_t timeout_ms, /* send timeout */
+                           uint8_t buf);        /* payload buffer */
 
-extern uint8_t iso_tp_send(struct iso_tp_tx_request *req);
-extern uint8_t iso_tp_tx_done(void);
-extern uint8_t iso_tp_recv(struct iso_tp_rx_request *req);
-extern uint8_t iso_tp_rx_done(void);
+extern uint8_t iso_tp_send_done(void);
+extern uint8_t iso_tp_recv_done(void);
+
+extern void iso_tp_can_rx(uint8_t sender, uint8_t *data);
 extern void iso_tp_sender(struct pt *pt);
 
 /*
- * DDE scanner
+ * BMW module scanner
  */
 
 extern bool dde_oil_warning;
 extern bool dde_mil_state;
-extern struct pt pt_dde_scanner;
+extern struct pt pt_bmw_scanner;
 extern struct pt pt_can_report_dde;
 
-extern void dde_recv(uint8_t *data);
-extern void dde_scanner(struct pt *pt);
-extern void dde_scanner(struct pt *pt);
+extern void bmw_scanner(struct pt *pt);
+extern void bmw_scanner(struct pt *pt);
 extern void can_report_dde(struct pt *pt);
 
 

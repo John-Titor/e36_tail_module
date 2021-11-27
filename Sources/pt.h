@@ -44,6 +44,11 @@ struct pt {
         (pt)->label = 0;                                                        \
         (pt)->status = 0;                                                       \
     } while(0)
+#define pt_abort(pt)                                                            \
+    do {                                                                        \
+        pt_reset(pt);                                                           \
+        return;                                                                 \
+    } while(0)
 
 /*
  * Core protothreads API

@@ -11,9 +11,9 @@
 #define CAN_IDLE_TIMEOUT            2000
 
 /*
- * Timeout (ms) before deciding the DDE isn't responding.
+ * Interval (ms) between BMW module scans
  */
-#define CAN_DDE_TIMEOUT             500
+#define CAN_BMW_INTERVAL            200
 
 /* 
  * Interval (ms) between status reports.
@@ -60,11 +60,5 @@
  * Timeout (ms) before deciding the scantool has disconnected.
  */
 #define CAN_SCANTOOL_TIMEOUT        2000
-
-/*
- * Enable the (experimental) ISO-TP code
- */
-#define CAN_ENABLE_ISO_TP           0
-
 
 #endif // _CONFIG_H

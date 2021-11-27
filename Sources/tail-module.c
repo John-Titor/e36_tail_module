@@ -19,7 +19,7 @@
 
 struct pt pt_can_listener;
 struct pt pt_iso_tp;
-struct pt pt_dde_scanner;
+struct pt pt_bmw_scanner;
 
 struct pt pt_can_report_state;
 struct pt pt_can_report_diags;
@@ -54,8 +54,8 @@ tail_module(void)
         // CAN protocol handling
         can_listen(&pt_can_listener);
         iso_tp_sender(&pt_iso_tp);
-        if (pt_running(&pt_dde_scanner)) {
-            dde_scanner(&pt_dde_scanner);
+        if (pt_running(&pt_bmw_scanner)) {
+            bmw_scanner(&pt_bmw_scanner);
         }
 
         // reporters

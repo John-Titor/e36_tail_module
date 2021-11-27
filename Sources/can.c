@@ -186,27 +186,17 @@ can_listen(struct pt *pt)
                 rain_light_request((buf->data[0] & 0x40) ? LIGHT_ON : LIGHT_OFF);
             }
 
-            // ISO-TP message from diagnostic tool
-            else if ((buf->id == 0x6f1) &&
-                     (buf->dlc == 8)) {
-
-                // have to stop the DDE scanner to prevent interference
-                pt_stop(&pt_dde_scanner);
+            // Presumed ISO-TP message
+            //
+            if ((buf->id >= 0x600) && (buf->id < 0x700)) {
+                // ... from diagnostic tool?
+                if (buf->id == 0x6f1) {
+                    // have to stop the DDE scanner to prevent interference
+                    pt_stop(&pt_bmw_scanner);
+                } else {
+                    iso_tp_can_rx(buf->id, &buf->data[0]);
+                }
             }
-
-            // ISO-TP message from DDE
-            else if ((buf->id == 0x612) &&
-                     (buf->dlc == 8)) {
-
-                dde_recv(&buf->data[0]);
-            }
-#if 0
-            // ISO-TP message from EGS
-            else if ((buf->id == 0x618) &&
-                     (buf->dlc == 8)) {
-                egs_recv(&buf->data[[0]]);
-            }
-#endif
         }
 
         // if we haven't heard a useful CAN message for a while...
