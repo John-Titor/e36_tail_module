@@ -5,7 +5,7 @@
 **     Project   : 7x_e36_tail_module
 **     Processor : MC9S08DZ60CLH
 **     Compiler  : CodeWarrior HCS08 C Compiler
-**     Date/Time : 2021-04-24, 23:26, # CodeGen: 12
+**     Date/Time : 2022-03-09, 18:39, # CodeGen: 21
 **     Abstract  :
 **        This file is used by the linker. It describes files to be linked,
 **        memory ranges, stack size, etc. For detailed description of the PRM file
@@ -69,5 +69,5 @@ END
 
 INIT _EntryPoint                       /* The entry point of the application. This function is generated into the CPU module. */
 
-STACKSIZE 0x0100                       /* Size of the system stack. Value can be changed on the "Build options" tab */
+STACKSIZE 0x0200                       /* Size of the system stack. Value can be changed on the "Build options" tab */
 

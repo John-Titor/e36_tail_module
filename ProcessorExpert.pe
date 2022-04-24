@@ -3,8 +3,8 @@
   <Header>
     <Name>7x_e36_tail_module</Name>
     <SavedBy>DrZip</SavedBy>
-    <ModificationStamp>25</ModificationStamp>
-    <Date>2021-07-11</Date>
+    <ModificationStamp>26</ModificationStamp>
+    <Date>2022-03-09</Date>
     <IDE>Eclipse IDE</IDE>
     <PEversion>1.9.2.RT6_b1446-0504</PEversion>
   </Header>
@@ -2883,7 +2883,7 @@
           <ItemSymbol>C_StackSize</ItemSymbol>
           <ReadOnly>false</ReadOnly>
           <PropertyModelIsAutomatic>false</PropertyModelIsAutomatic>
-          <Value>256</Value>
+          <Value>512</Value>
           <ItemWasNeverEnabledInChgScript>true</ItemWasNeverEnabledInChgScript>
           <Base>HEX</Base>
         </ItemState>

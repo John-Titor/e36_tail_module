@@ -60,7 +60,6 @@
 									<listOptionValue builtIn="false" value="Project_Settings/Startup_Code/start08.c"/>
 									<listOptionValue builtIn="false" value="Sources/Events.c"/>
 									<listOptionValue builtIn="false" value="Sources/can.c"/>
-									<listOptionValue builtIn="false" value="Sources/cas_jbe_emulator.c"/>
 									<listOptionValue builtIn="false" value="Sources/fault.c"/>
 									<listOptionValue builtIn="false" value="Sources/lights.c"/>
 									<listOptionValue builtIn="false" value="Sources/main.c"/>
@@ -68,7 +67,16 @@
 									<listOptionValue builtIn="false" value="Sources/output.c"/>
 									<listOptionValue builtIn="false" value="Sources/tail-module.c"/>
 									<listOptionValue builtIn="false" value="Sources/timer.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/IEE1.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/MCUC1.c"/>
+									<listOptionValue builtIn="false" value="Generated_Code/UTIL1.c"/>
+									<listOptionValue builtIn="false" value="Sources/bmw_scanner.c"/>
+									<listOptionValue builtIn="false" value="Sources/iso-tp.c"/>
+									<listOptionValue builtIn="false" value="Sources/lib.c"/>
 								</option>
+								<option id="hc08.toolchain.linker.base.output.StackConsumption.311885012" name="Enable Stack Consumption Computation (-StackConsumption)" superClass="hc08.toolchain.linker.base.output.StackConsumption" value="false" valueType="boolean"/>
+								<option id="hc08.toolchain.linker.base.opt.ConstDist.1048206812" name="Enable automatic const placement (-ConstDist)" superClass="hc08.toolchain.linker.base.opt.ConstDist" value="false" valueType="boolean"/>
+								<option id="hc08.toolchain.linker.base.opt.DataDist.220474950" name="Enable automatic data placement (-DataDist)" superClass="hc08.toolchain.linker.base.opt.DataDist" value="false" valueType="boolean"/>
 								<inputType id="hc08.toolchain.linker.base.input.1138786096" name="Linker Input" superClass="hc08.toolchain.linker.base.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
