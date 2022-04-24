@@ -20,34 +20,40 @@ enum {
 
 typedef struct {
     uint8_t     recipient;
+    uint8_t     _res:4;
     uint8_t     type:4;
-    uint8_t     len:4;
-    uint8_t     data[6];
-}       tp_single;
+}       tp_header_t;
 
 typedef struct {
     uint8_t     recipient;
+    uint8_t     len:4;
     uint8_t     type:4;
+    uint8_t     data[6];
+}       tp_single_t;
+
+typedef struct {
+    uint8_t     recipient;
     uint8_t     len_hi:4;
+    uint8_t     type:4;
     uint8_t     len_lo;
     uint8_t     data[5];
-}       tp_first;
+}       tp_first_t;
 
 typedef struct {
     uint8_t     recipient;
-    uint8_t     type:4;
     uint8_t     index:4;
+    uint8_t     type:4;
     uint8_t     data[6];
-}       tp_consecutive;
+}       tp_consecutive_t;
 
 typedef struct {
     uint8_t     recipient;
-    uint8_t     type:4;
     uint8_t     flag:4;
+    uint8_t     type:4;
     uint8_t     block_size;
     uint8_t     st;
     uint8_t     _res[4];
-}       tp_flow;
+}       tp_flow_t;
 
 enum {
     TP_FLOW_CONTINUE    = 0,
@@ -56,16 +62,16 @@ enum {
 };
 
 typedef union {
-    tp_single       single;
-    tp_first        first;
-    tp_consecutive  consecutive;
-    tp_flow         flow;
-    uint8_t         raw[8];
+    tp_header_t         header;
+    tp_single_t         single;
+    tp_first_t          first;
+    tp_consecutive_t    consecutive;
+    tp_flow_t           flow;
+    uint8_t             raw[8];
 } tp_frame_t;
 
 static struct {
     // parameters
-    uint8_t         sender;
     uint8_t         recipient;
     uint8_t         resid;
     uint8_t         sequence;
@@ -81,7 +87,6 @@ static struct {
 static struct {
     // parameters
     uint8_t         sender;
-    uint8_t         recipient;
     uint8_t         resid;
     uint8_t         *buf;
     timer_t         timeout;
@@ -94,10 +99,9 @@ static struct {
 //
 uint8_t
 iso_tp_send(uint8_t len,
-            uint8_t sender,
             uint8_t recipient,
             uint16_t timeout_ms,
-            uint8_t buf)
+            const uint8_t *buf)
 {
     tp_frame_t  tf;
     uint8_t     i;
@@ -142,7 +146,6 @@ iso_tp_send(uint8_t len,
 
         // set up the rest of the request so that we can continue
         // it once a flow control message arrives
-        tp_tx.sender = sender;
         tp_tx.recipient = recipient;
         tp_tx.resid = len - sizeof(tf.first.data);
         tp_tx.sequence = 1;
@@ -155,14 +158,7 @@ iso_tp_send(uint8_t len,
     }
 
     // send first/initial frame
-    do {
-        ret = CAN1_SendFrame(1,
-                             0x600 + tp_tx.sender,
-                             DATA_FRAME,
-                             8,
-                             &(tf.raw[0]));
-    } while (ret == ERR_TXFULL);
-
+    can_send_blocking(0x600 + ISO_TP_NODE_ID, &(tf.raw[0]));
     return ISO_TP_SUCCESS;
 }
 
@@ -174,7 +170,6 @@ iso_tp_tx_send_next(void)
 {
     tp_frame_t  tf;
     uint8_t     i;
-    uint8_t     ret;
 
     if ((iso_tp_send_done() == ISO_TP_BUSY) &&
         timer_expired(tp_tx.interval) &&
@@ -195,14 +190,7 @@ iso_tp_tx_send_next(void)
         }
 
         // send consecutive frame
-        do {
-            ret = CAN1_SendFrame(1,
-                                 0x600 + tp_tx.sender,
-                                 DATA_FRAME,
-                                 8,
-                                 &(tf.raw[0]));
-        } while (ret == ERR_TXFULL);
-
+        can_send_blocking(0x600 + ISO_TP_NODE_ID, &(tf.raw[0]));
         tp_tx.window_resid--;
         timer_reset(tp_tx.interval, tp_tx.interval_ms);
     }
@@ -235,9 +223,8 @@ iso_tp_send_done()
 uint8_t
 iso_tp_recv(uint8_t len,
             uint8_t sender,
-            uint8_t recipient,
             uint16_t timeout_ms,
-            uint8_t buf)
+            uint8_t *buf)
 {
     uint8_t ret = iso_tp_recv_done();
     if (ret == ISO_TP_BUSY) {
@@ -245,9 +232,8 @@ iso_tp_recv(uint8_t len,
     }
 
     tp_rx.sender = sender;
-    tp_rx.recipient = recipient;
     tp_rx.resid = len;
-    tp_tx.buf = buf;
+    tp_rx.buf = buf;
     timer_register(tp_rx.timeout);
     timer_reset(tp_rx.timeout, timeout_ms);
 }
@@ -274,6 +260,94 @@ iso_tp_recv_done()
     return ISO_TP_TIMEOUT;
 }
 
+static void
+iso_tp_rx_flow(uint8_t sender, const tp_flow_t *tf)
+{
+    if ((iso_tp_send_done() == ISO_TP_BUSY) &&
+        (sender == tp_tx.recipient) &&
+        (tp_tx.window_resid == 0) &&
+        (tf->flag == TP_FLOW_CONTINUE)) {
+
+        // set up sequenced transmission of the next block of frames
+        tp_tx.window_resid = tf->block_size ? tf->block_size : 0xff;
+        tp_tx.interval_ms = tf->st;   // TODO <FLOW_ST>
+        timer_register(tp_tx.interval);
+        timer_reset(tp_tx.interval, 0);
+        iso_tp_tx_send_next();
+    }
+}
+
+static void
+iso_tp_rx_single(uint8_t sender, const tp_single_t *ts)
+{
+    uint8_t i;
+
+    if ((iso_tp_recv_done() == ISO_TP_BUSY) &&
+        (sender == tp_rx.sender) &&
+        (ts->len == tp_rx.resid)) {
+
+        for (i = 0; i < tp_rx.resid; i++) {
+            tp_rx.buf[i] = ts->data[i];
+        }
+        tp_rx.resid = 0;
+    }
+}
+
+static void
+iso_tp_rx_first(uint8_t sender, const tp_first_t *tf)
+{
+    tp_frame_t ff;
+    uint8_t i;
+
+    if ((iso_tp_recv_done() == ISO_TP_BUSY) &&
+        (sender == tp_rx.sender) &&
+        (tf->len_hi == 0) &&
+        (tf->len_lo == tp_rx.resid)) {
+
+        for (i = 0;
+             tp_rx.resid && (i < sizeof(tf->data));
+             i++, tp_rx.resid--, tp_rx.buf++) {
+
+            *tp_rx.buf = tf->data[i];
+        }
+        tp_rx.sequence = 1;
+
+        ff.flow.recipient = tp_rx.sender;
+        ff.flow.type = TP_FLOW_CONTROL_FRAME;
+        ff.flow.flag = TP_FLOW_CONTINUE;
+        ff.flow.block_size = 0x00;  // send all remaining
+        ff.flow.st = 1;             // 1ms pacing
+        ff.flow._res[0] = 0;
+        ff.flow._res[1] = 0;
+        ff.flow._res[2] = 0;
+        ff.flow._res[3] = 0;
+
+        // send flow control message asking for more
+        can_send_blocking(0x600 + ISO_TP_NODE_ID, &(ff.raw[0]));
+    }
+}
+
+static void
+iso_tp_rx_consecutive(uint8_t sender, const tp_consecutive_t *tc)
+{
+    uint8_t i;
+
+    if ((iso_tp_recv_done() == ISO_TP_BUSY) &&
+        (sender == tp_rx.sender) &&
+        (tc->index == tp_rx.sequence)) {
+
+        for (i = 0;
+             tp_rx.resid && (i < sizeof(tc->data));
+             i++, tp_rx.resid--, tp_rx.buf++) {
+
+            *tp_rx.buf = tc->data[i];
+        }
+
+        tp_rx.sequence = (tp_rx.sequence + 1) & 0x0f;
+    }
+
+}
+
 // Handle a presumed ISO-TP frame, called from the CAN listener
 // thread.
 //
@@ -281,92 +355,35 @@ void
 iso_tp_can_rx(uint8_t sender, uint8_t *data)
 {
     tp_frame_t *tf = (tp_frame_t *)data;
-    uint8_t i;
-    uint8_t ret;
+    uint8_t sender_id = sender & 0xff;
+
+    // ignore frames not intended for this node
+    if (tf->header.recipient != ISO_TP_NODE_ID) {
+        return;
+    }
 
     // is this a flow-control message to the current sender, and
     // are they waiting for one?
-    if ((sender == tp_tx.recipient) &&
-        (tf->flow.type == TP_FLOW_CONTROL_FRAME) && 
-        (iso_tp_send_done() == ISO_TP_BUSY) &&
-        (tf->flow.recipient == tp_tx.sender) &&
-        (tp_tx.window_resid == 0)) {
-
-        // set up sequenced transmission of the next block of frames
-        tp_tx.window_resid = tf->flow.block_size;
-        tp_tx.interval_ms = tf->flow.st;   // TODO <FLOW_ST>
-        timer_register(tp_tx.interval);
-        timer_reset(tp_tx.interval, 0);
-        iso_tp_tx_send_next();
+    if (tf->header.type == TP_FLOW_CONTROL_FRAME) {
+        iso_tp_rx_flow(sender_id, &tf->flow);
         return;
     }
 
     // is this a single frame aimed at the current recipient?
-    if ((tf->single.type == TP_SINGLE_FRAME) &&
-        (tf->single.recipient == tp_rx.recipient) &&
-        (tf->single.len == tp_rx.resid)) {
-
-        for (i = 0; i < tp_rx.resid; i++) {
-            tp_rx.buf[i] = tf->single.data[i];
-        }
-        tp_rx.resid = 0;
+    if (tf->header.type == TP_SINGLE_FRAME) {
+        iso_tp_rx_single(sender_id, &tf->single);
         return;
     }
 
     // is this a first frame aimed at the current recipient?
-    if ((sender == tp_rx.sender) &&
-        (tf->first.type == TP_FIRST_FRAME) &&
-        (iso_tp_recv_done() == ISO_TP_BUSY) &&
-        (tf->first.recipient == tp_rx.recipient) &&
-        (tf->first.len_lo == tp_rx.resid)) {
-
-        for (i = 0;
-             (i < tp_rx.resid) && (i < sizeof(tf->first.data));
-             i++) {
-
-            tp_rx.buf[i] = tf->first.data[i];
-        }
-        tp_rx.resid -= i;
-        tp_rx.buf += i;
-        tp_rx.sequence = 1;
-
-        // recycle buffer for flow control message
-        tf->flow.recipient = tp_rx.sender;
-        tf->flow.type = TP_FLOW_CONTROL_FRAME;
-        tf->flow.block_size = 0x10; // TODO <FLOW_SIZE>
-        tf->flow.st = 1;
-
-        // send flow control message asking for more
-        do {
-            ret = CAN1_SendFrame(1,
-                                 0x600 + tp_rx.recipient,
-                                 DATA_FRAME,
-                                 8,
-                                 &(tf->raw[0]));
-        } while (ret == ERR_TXFULL);
-
+    if (tf->header.type == TP_FIRST_FRAME) {
+        iso_tp_rx_first(sender_id, &tf->first);
         return;
     }
 
     // is this a consecutive frame continuing reception?
-    // XXX no support for additional flow control messages 
-    //     after the first
-    if ((sender == tp_rx.sender) && 
-        (tf->consecutive.type == TP_CONSECUTIVE_FRAME) &&
-        (iso_tp_recv_done() == ISO_TP_BUSY) &&
-        (tf->consecutive.recipient == tp_rx.recipient) && 
-        (tf->consecutive.index == tp_rx.sequence)) {
-
-        for (i = 0;
-             (i < tp_rx.resid) && (i < sizeof(tf->consecutive.data));
-             i++) {
-
-            tp_rx.buf[i] = tf->consecutive.data[i];
-        }
-        tp_rx.resid -= i;
-        tp_rx.buf += i;
-        tp_rx.sequence = (tp_rx.sequence + 1) & 0x0f;
-
+    if (tf->header.type == TP_CONSECUTIVE_FRAME) {
+        iso_tp_rx_consecutive(sender_id, &tf->consecutive);
         return;
     }
 }
@@ -377,6 +394,7 @@ void
 iso_tp_sender(struct pt *pt)
 {
     pt_begin(pt);
+    tp_rx.resid = 1;    // initially have not received anything...
 
     for (;;) {
         // try sending another frame if transmission is in progress

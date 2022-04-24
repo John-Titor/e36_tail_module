@@ -46,8 +46,10 @@ extern struct pt pt_can_report_diags;
 
 extern void can_trace(uint8_t code);
 extern void can_putchar(char ch);
+extern void can_send_blocking(uint32_t id, uint8_t *data);
 
 extern void can_reinit(void);
+extern void can_send_blocking(uint32_t id, uint8_t *data);
 extern void can_rx_message(void);
 extern void can_listen(struct pt *pt);
 extern void can_report_state(struct pt *pt);
@@ -62,15 +64,13 @@ extern void can_report_diags(struct pt *pt);
 #define ISO_TP_TIMEOUT      2
 
 extern uint8_t iso_tp_send(uint8_t len,         /* payload length in bytes */
-                           uint8_t sender,      /* originator address */
                            uint8_t recipient,   /* recipient address 0x00... 0xfe */
                            uint16_t timeout_ms, /* send timeout */
-                           uint8_t buf);        /* payload bytes */
+                           const uint8_t *buf); /* payload bytes */
 extern uint8_t iso_tp_recv(uint8_t len,         /* required reply length in bytes */
-                           uint8_t sender,      /* originator address */
-                           uint8_t recipient,   /* recipient address 0x00... 0xfe */
+                           uint8_t sender,      /* sender address 0x00... 0xfe */
                            uint16_t timeout_ms, /* send timeout */
-                           uint8_t buf);        /* payload buffer */
+                           uint8_t *buf);       /* payload buffer */
 
 extern uint8_t iso_tp_send_done(void);
 extern uint8_t iso_tp_recv_done(void);
@@ -85,11 +85,10 @@ extern void iso_tp_sender(struct pt *pt);
 extern bool dde_oil_warning;
 extern bool dde_mil_state;
 extern struct pt pt_bmw_scanner;
-extern struct pt pt_can_report_dde;
+extern uint8_t bmw_display_gear;
 
+extern void bmw_recv_gear(uint8_t gear_code);
 extern void bmw_scanner(struct pt *pt);
-extern void bmw_scanner(struct pt *pt);
-extern void can_report_dde(struct pt *pt);
 
 
 /*

@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #include <CAN1.h>
+#include <WDOG1.h>
 
 #include "defs.h"
 #include "pt.h"
@@ -24,6 +25,7 @@ static uint8_t              can_buf_tail;
 #define CAN_BUF_PTR(_x)     &_can_buf[_CAN_BUF_INDEX(_x)]
 #define CAN_BUF_EMPTY       (can_buf_head == can_buf_tail)
 #define CAN_BUF_FULL        ((can_buf_head - can_buf_tail) >= CAN_BUF_COUNT)
+static bool                 can_buf_overflow;
 
 void
 can_trace(uint8_t code)
@@ -50,11 +52,21 @@ can_putchar(char ch)
     msg[len++] = (uint8_t)ch;
     if ((len == 8) || (ch == '\0')) {
         do {
-            // send explicitly using buffer 0 to ensure messages are sent in order
-            ret = CAN1_SendFrame(0, CAN_EXTENDED_FRAME_ID | 0x1ffffffe, DATA_FRAME, len, &msg[0]);
+            // send explicitly using buffer 2 to ensure messages are sent in order
+            ret = CAN1_SendFrame(2, CAN_EXTENDED_FRAME_ID | 0x1ffffffe, DATA_FRAME, len, &msg[0]);
         } while (ret == ERR_TXFULL);
         len = 0;
     }
+}
+
+void
+can_send_blocking(uint32_t id, uint8_t *data)
+{
+    uint8_t ret;
+
+    do {
+        ret = CAN1_SendFrameExt(id, DATA_FRAME, 8, data);
+    } while (ret == ERR_TXFULL);
 }
 
 /*
@@ -63,7 +75,7 @@ can_putchar(char ch)
 void
 can_reinit(void)
 {
-    REQUIRE(CAN_BUF_EMPTY);
+//    REQUIRE(CAN_BUF_EMPTY);
 
     CANCTL0 |= CANCTL0_INITRQ_MASK;
     while (!(CANCTL1 & CANCTL1_INITAK_MASK)) {
@@ -127,6 +139,7 @@ can_rx_message(void)
 
     // If there's nowhere to put a message, just drop it.
     if (CAN_BUF_FULL) {
+        can_buf_overflow = TRUE;
         return;
     }
     buf = CAN_BUF_PTR(can_buf_head);
@@ -163,11 +176,16 @@ can_listen(struct pt *pt)
         // handle CAN messages
         while (!CAN_BUF_EMPTY) {
             can_buf_t *buf = CAN_BUF_PTR(can_buf_tail);
-            can_buf_tail++;
 
             // we're hearing CAN, so reset the idle timer / fault
             timer_reset(can_idle_timer, CAN_IDLE_TIMEOUT);
             fault_clear_system(SYS_FAULT_CAN_TIMEOUT);
+
+            // overflow?
+            if (can_buf_overflow) {
+                can_buf_overflow = FALSE;
+                print("CAN OVERFLOW");
+            }
 
             // BMW brake pedal message
             //
@@ -186,17 +204,30 @@ can_listen(struct pt *pt)
                 rain_light_request((buf->data[0] & 0x40) ? LIGHT_ON : LIGHT_OFF);
             }
 
+            // BMW selected gear message
+            //
+            else if ((buf->id == 0x1d2)) {
+                bmw_recv_gear(buf->data[0]);
+            }
+
+            // Scan tool talking? need to silence the DDE scanner
+            //
+            else if (buf->id == 0x6f1) {
+                // have to stop the DDE scanner to prevent interference
+                pt_stop(&pt_bmw_scanner);
+            }
+
             // Presumed ISO-TP message
             //
-            if ((buf->id >= 0x600) && (buf->id < 0x700)) {
-                // ... from diagnostic tool?
-                if (buf->id == 0x6f1) {
-                    // have to stop the DDE scanner to prevent interference
-                    pt_stop(&pt_bmw_scanner);
-                } else {
-                    iso_tp_can_rx(buf->id, &buf->data[0]);
-                }
+            else if ((buf->id >= 0x600) && (buf->id < 0x6f0)) {
+                iso_tp_can_rx(buf->id, &buf->data[0]);
             }
+
+            // Increment tail now that message has been consumed
+            can_buf_tail++;
+
+            // yield before processing the next message
+            pt_yield(pt);
         }
 
         // if we haven't heard a useful CAN message for a while...
@@ -204,7 +235,6 @@ can_listen(struct pt *pt)
             fault_set_system(SYS_FAULT_CAN_TIMEOUT);
             brake_light_request(LIGHT_ALT);
         }
-
         pt_yield(pt);
     }
     pt_end(pt);
@@ -222,7 +252,6 @@ can_report_state(struct pt *pt)
     for (;;) {
         uint16_t mon_val;
         uint8_t data[8];
-        uint8_t ret;
 
         pt_delay(pt, can_report_state_timer, CAN_REPORT_INTERVAL_STATE);
 
@@ -238,17 +267,10 @@ can_report_state(struct pt *pt)
             data[0] = (uint8_t)((mon_val - 500) / 40);
         }
 
-        data[1] = data[2] = data[3] = data[4] = data[5] = data[6] = 0;
+        data[1] = bmw_display_gear;
+        data[2] = data[3] = data[4] = data[5] = data[6] = data[7] = 0;
 
-        // flags
-        data[7] = 
-            (dde_oil_warning ? 0x40 : 0x00) |
-            (dde_mil_state ? 0x80 : 0x00);
-
-        do {
-            ret = CAN1_SendFrameExt(0x702, DATA_FRAME, 8, &data[0]);
-        } while (ret == ERR_TXFULL);
-
+        can_send_blocking(CAN_ID_STATE, &data[0]);
     }
     pt_end(pt);
 }
@@ -265,7 +287,6 @@ can_report_diags(struct pt *pt)
     for (;;) {
         uint16_t mon_val;
         uint8_t data[8];
-        uint8_t ret;
 
         pt_delay(pt, can_report_diags_timer, CAN_REPORT_INTERVAL_DIAGS);
         
@@ -295,9 +316,7 @@ can_report_diags(struct pt *pt)
                    (tail_light_requested ? 2 : 0) |
                    (rain_light_requested ? 4 : 0));
 
-        do {
-            ret = CAN1_SendFrameExt(CAN_EXTENDED_FRAME_ID | 0x0f00000, DATA_FRAME, 0x8, &data[0]);
-        } while (ret == ERR_TXFULL);
+        can_send_blocking(CAN_ID_DIAGS + 0, &data[0]);
         pt_yield(pt);
 
         mon_val = monitor_get(MON_OUT_V_1);
@@ -317,9 +336,7 @@ can_report_diags(struct pt *pt)
         mon_val = monitor_get(MON_OUT_I_4);
         data[7] = (uint8_t)(mon_val / 10);
 
-        do {
-            ret = CAN1_SendFrameExt(CAN_EXTENDED_FRAME_ID | 0x0f00001, DATA_FRAME, 8, &data[0]);
-        } while (ret == ERR_TXFULL);
+        can_send_blocking(CAN_ID_DIAGS + 1, &data[0]);
         pt_yield(pt);
 
         data[0] = fault_output[0].raw;
@@ -331,9 +348,7 @@ can_report_diags(struct pt *pt)
         data[6] = 0x33;
         data[7] = fault_system.raw;
 
-        do {
-            ret = CAN1_SendFrameExt(CAN_EXTENDED_FRAME_ID | 0x0f00002, DATA_FRAME, 8, &data[0]);
-        } while (ret == ERR_TXFULL);
+        can_send_blocking(CAN_ID_DIAGS + 2, &data[0]);
     }
     pt_end(pt);
 }

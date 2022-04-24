@@ -49,20 +49,21 @@ tail_module(void)
 
     // main loop
     for (;;) {
-        (void)WDog1_Clear();                            // must be reset every 1s or better
 
         // CAN protocol handling
+        (void)WDog1_Clear();                            // must be reset every 1s or better
         can_listen(&pt_can_listener);
         iso_tp_sender(&pt_iso_tp);
         if (pt_running(&pt_bmw_scanner)) {
             bmw_scanner(&pt_bmw_scanner);
         }
-
         // reporters
+        (void)WDog1_Clear();                            // must be reset every 1s or better
         can_report_state(&pt_can_report_state);
         can_report_diags(&pt_can_report_diags);
 
         // output handlers
+        (void)WDog1_Clear();                            // must be reset every 1s or better
         brake_thread(&pt_brakes);
         tails_thread(&pt_tails);
         rains_thread(&pt_rains);

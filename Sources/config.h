@@ -10,21 +10,34 @@
  */
 #define CAN_IDLE_TIMEOUT            2000
 
-/*
- * Interval (ms) between BMW module scans
- */
-#define CAN_BMW_INTERVAL            200
-
-/* 
- * Interval (ms) between status reports.
- */
-#define CAN_REPORT_INTERVAL_STATE   100
-
 /* 
  * Interval (ms) between CAN diagnostic messages.
  * 0 to disable.
  */
 #define CAN_REPORT_INTERVAL_DIAGS   1000
+#define CAN_ID_DIAGS                0x720
+
+/* 
+ * Interval (ms) between CAN status report messages
+ * 0 to disable.
+ */
+#define CAN_REPORT_INTERVAL_STATE   200
+#define CAN_ID_STATE                0x710
+
+/*
+ * Interval (ms) between BMW DDE poll events
+ */
+#define CAN_BMW_INTERVAL            100
+
+/*
+ * Base CAN ID for reflected BMW PID messages
+ */
+#define CAN_ID_BMW                  0x700
+
+/*
+ * Local ISO-TP node address
+ */
+#define ISO_TP_NODE_ID              0xf1
 
 /*
  * Minimum load current (mA): below this, output is considered open.
@@ -56,9 +69,5 @@
  */
 #define SENSE_OVERLOAD_RETRY_INTERVAL   1000
 
-/*
- * Timeout (ms) before deciding the scantool has disconnected.
- */
-#define CAN_SCANTOOL_TIMEOUT        2000
 
 #endif // _CONFIG_H
