@@ -1,62 +1,44 @@
 #!/usr/bin/env python3
 #
-# Functional tests for the 7x_e36 tail module firmware.
+# Test console for the E36 tail module
 #
-# Test setup:
-#
-# - 5A power supply
-# - programmer/probe connected
-# - DO_1 programmable load
-# - DO_2 LED to ground
-# - DO_3 open
-# - DO_4 open
-# - AI_1 some value 0-5V
-# - KL15 on relay
 
+import time
 import argparse
-import curses
+from interface import Interface, ModuleError
+from messages import MessageError
 
-from messages import *
-from interface import *
-from logger import Logger
-
-from monitor import do_monitor
-from dde_scan import do_dde_scan_test
-
+from console import Console
+from dde import DDE
+from status import Status
 
 parser = argparse.ArgumentParser(description='E36 tail module tester')
-parser.add_argument('--can-speed',
+parser.add_argument('--interface-channel',
+                    type=str,
+                    metavar='CHANNEL',
+                    required=True,
+                    help='interface channel name (e.g. for Anagate units, hostname:portname')
+parser.add_argument('--bitrate',
                     type=int,
-                    default=125000,
-                    metavar='BITRATE',
-                    help='CAN bitrate')
-parser.add_argument('--no-CAN-at-start',
-                    action='store_true',
-                    help='disable vehicle CAN emulation at start')
-parser.add_argument('--T15-at-start',
-                    action='store_true',
-                    help='turn on T15 with T30')
-parser.add_argument('--verbose',
-                    action='store_true',
-                    help='print verbose progress information')
-
-actiongroup = parser.add_mutually_exclusive_group(required=True)
-actiongroup.add_argument('--monitor',
-                         action='store_true',
-                         help='interactive monitor')
-actiongroup.add_argument('--dde-scan',
-                         action='store_true',
-                         help='test the DDE scan / repeater')
+                    default=500,
+                    metavar='BITRATE_KBPS',
+                    help='CAN bitrate (kBps)')
 
 
 args = parser.parse_args()
 interface = None
 try:
-    interface = CANInterface(args)
-    if args.monitor:
-        curses.wrapper(do_monitor, interface, args)
-    elif args.dde_scan:
-        do_dde_scan_test(interface, args)
+    interface = Interface(args)
+    interface.set_power_on()
+    dde = DDE(interface)
+    status = Status(interface)
+    console = Console(interface)
+
+    time.sleep(3)
+    dde.brake_on()
+    time.sleep(2)
+    dde.brake_off()
+    time.sleep(2)
 except KeyboardInterrupt:
     pass
 except ModuleError as err:
